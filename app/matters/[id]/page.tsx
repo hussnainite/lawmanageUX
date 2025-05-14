@@ -1,7 +1,5 @@
 "use client"
 
-import type React from "react"
-
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -27,8 +25,9 @@ import {
   Eye,
   Paperclip,
   Phone,
-  MapPin,
   Trash2,
+  Send,
+  MapPin,
 } from "lucide-react"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
@@ -37,99 +36,51 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import AddDocumentDialog from "@/components/add-document-dialog"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-// Import the DocumentRow component at the top of the file
 import DocumentRow from "@/components/document-row"
 import { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import EmailComposeDialog from "@/components/email-compose-dialog"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Checkbox } from "@/components/ui/checkbox"
+import { ChevronDown, ChevronUp, Filter, Tag } from "lucide-react"
+import { Label } from "@/components/ui/label"
+import PropertyFinancialTab from "@/components/property-financial-tab"
+import RequestDetailEmailDialog from "@/components/request-detail-email-dialog"
 
-interface Document {
-  id: number
-  name: string
-  type: string
-  date: string
-  status: string
-  timestamp?: string // For sorting in chronological order
+// Helper function to format dates
+function formatDate(dateString: string) {
+  const options: Intl.DateTimeFormatOptions = { year: "numeric", month: "long", day: "numeric" }
+  return new Date(dateString).toLocaleDateString("en-AU", options)
 }
 
-interface Email {
-  id: number
-  date: string
-  time?: string
-  timestamp?: string // For sorting in chronological order
-  from: string
-  to: string
-  subject: string
-  preview: string
-  content?: string
-  hasAttachments: boolean
-  attachments?: {
-    id: number
-    name: string
-    type: string
-    size: string
-  }[]
-  relatedDocumentId?: number
-}
-
-interface Note {
-  id: number
-  date: string
-  time?: string
-  timestamp?: string // For sorting in chronological order
-  author: string
-  content: string
-}
-
-interface Call {
-  id: number
-  date: string
-  time: string
-  timestamp?: string // For sorting in chronological order
-  with: string
-  duration: string
-  notes: string
-}
-
-interface LogEntry {
-  id: number
-  type: "document" | "email" | "note" | "call" | "hearing" | "status"
-  date: string
-  time: string
-  timestamp: string // For sorting in chronological order
-  title: string
-  description: string
-  user: string
-  data: Document | Email | Note | Call | any // The actual data object
-  relatedEntries?: number[] // IDs of related log entries
-}
-
+// Define the Matter interface
 interface Matter {
+  // Keep existing fields
   id: number
   title: string
   type: string
   status: string
   billingType: string
-  matterOpened?: string
-  matterClosed?: string
-  partnerSupervising?: {
+  matterOpened: string
+  matterClosed: string
+  partnerSupervising: {
     id: number
     name: string
     email: string
     avatar: string
-  }
-  assistingLawyer?: {
+  } | null
+  assistingLawyer: {
     id: number
     name: string
     email: string
     avatar: string
-  }
+  } | null
   clients: {
     id: number
     name: string
     email: string
     phone: string
     tags: string[]
+    role?: string
+    relationship?: string
   }[]
   opposingParties: {
     id: number
@@ -137,6 +88,8 @@ interface Matter {
     email: string
     phone: string
     tags: string[]
+    role?: string
+    relationship?: string
   }[]
   otherParties: {
     id: number
@@ -145,12 +98,46 @@ interface Matter {
     phone: string
     role: string
     tags: string[]
+    relationship?: string
   }[]
-  children: { id: number; name: string; age: number; livingWith: string }[]
-  property: { id: number; type: string; description: string; value: string; notes: string }[]
-  financials: { id: number; type: string; description: string; value: string; notes: string }[]
-  liabilities: { id: number; type: string; description: string; value: string; notes: string }[]
-  documents: Document[]
+  children: {
+    id: number
+    name: string
+    age: number
+    livingWith: string
+    primaryCareGiver?: string
+    school?: string
+    grade?: string
+  }[]
+  property: {
+    id: number
+    type: string
+    description: string
+    value: string
+    notes: string
+  }[]
+  financials: {
+    id: number
+    type: string
+    description: string
+    value: string
+    notes: string
+  }[]
+  liabilities: {
+    id: number
+    type: string
+    description: string
+    value: string
+    notes: string
+  }[]
+  documents: {
+    id: number
+    name: string
+    type: string
+    date: string
+    status: string
+    timestamp?: string
+  }[]
   hearings: {
     id: number
     title: string
@@ -159,13 +146,47 @@ interface Matter {
     location: string
     judge: string
   }[]
-  notes: Note[]
-  emails: Email[]
-  calls: Call[]
+  notes: {
+    id: number
+    date: string
+    time: string
+    timestamp: string
+    author: string
+    content: string
+  }[]
+  calls: {
+    id: number
+    date: string
+    time: string
+    timestamp: string
+    with: string
+    duration: string
+    notes: string
+  }[]
+  emails: {
+    id: number
+    date: string
+    time: string
+    timestamp: string
+    from: string
+    to: string
+    subject: string
+    preview: string
+    content: string
+    hasAttachments: boolean
+    attachments: {
+      id: number
+      name: string
+      type: string
+      size: string
+    }[]
+    relatedDocumentId?: number
+  }[]
   hasAlert: boolean
   alertMessage: string
-  hasConflictAlert?: boolean
-  conflictAlertMessage?: string
+  hasConflictAlert: boolean
+  conflictAlertMessage: string
+  conflictStatus: string
   timeline: {
     id: number
     date: string
@@ -174,21 +195,20 @@ interface Matter {
     title: string
     description: string
     user: string
-    icon?: string
+    icon: string
     relatedId?: number
     relatedName?: string
   }[]
-  logEntries?: LogEntry[] // Combined chronological log
-  reference?: string
-  description?: string
-  client?: {
+  reference: string
+  description: string
+  client: {
     id: number
     name: string
     email: string
     phone: string
     avatar: string
   }
-  otherParties?: {
+  otherParties: {
     id: number
     name: string
     email: string
@@ -196,73 +216,225 @@ interface Matter {
     avatar: string
     role: string
   }[]
-  assignedTo?: {
+  assignedTo: {
     id: number
     name: string
     email: string
     avatar: string
   }
-  createdAt?: string
-  updatedAt?: string
-  nextHearing?: {
+  createdAt: string
+  updatedAt: string
+  nextHearing: {
     date: string
     location: string
     type: string
   }
+  createdByCurrentUser: boolean
+  logEntries?: LogEntry[]
+
+  // Family law specific fields
+  jurisdiction?: string
+  courtDetails?: {
+    court: string
+    fileNumber: string
+    registry: string
+    judicialOfficer: string
+  }
+  courtPleadings?: {
+    type: string
+    filed: string
+    served: string
+    response: string
+  }[]
+  courtListings?: {
+    type: string
+    date: string
+    time: string
+    location: string
+  }[]
+  relationshipDetails?: {
+    cohabitationDate?: string
+    cohabitationMonth?: string
+    cohabitationYear?: string
+    marriageDate?: string
+    marriageTown?: string
+    marriageCountry?: string
+    separationDate?: string
+    separationMonth?: string
+    separationYear?: string
+    divorceDate?: string
+  }
+  childSupport?: {
+    referenceNumber?: string
+    bindingAgreementDate?: string
+    limitedAgreementDate?: string
+  }
+  realEstateDetails?: {
+    properties: {
+      buildingLevel?: string
+      unit?: string
+      street?: string
+      suburb?: string
+      titleReference?: string
+      formerMatrimonialHome?: boolean
+      tenancy?: string
+      clientShare?: string
+      valueOfShare?: number
+      totalValue?: number
+      mortgages?: {
+        nameOfLender?: string
+        clientShare?: string
+        amountOfShare?: number
+        totalAmount?: number
+      }[]
+    }[]
+  }
+  otherAssets?: {
+    motorVehicles?: {
+      make?: string
+      model?: string
+      year?: string
+      registrationNo?: string
+      clientShare?: string
+      valueOfShare?: number
+      totalValue?: number
+    }[]
+    householdContents?: {
+      description?: string
+      clientShare?: string
+      valueOfShare?: number
+      totalValue?: number
+    }[]
+    bankAccounts?: {
+      institution?: string
+      accountNo?: string
+      bsb?: string
+      clientShare?: string
+      valueOfShare?: number
+      totalValue?: number
+    }[]
+    businesses?: {
+      name?: string
+      type?: string
+      address?: string
+      clientShare?: string
+      valueOfShare?: number
+      totalValue?: number
+    }[]
+    investments?: {
+      name?: string
+      type?: string
+      numberOfShares?: string
+      clientShare?: string
+      valueOfShare?: number
+      totalValue?: number
+    }[]
+    lifeInsurance?: {
+      nameOfCompany?: string
+      policyType?: string
+      policyNo?: string
+      surrenderValue?: number
+    }[]
+    otherPersonalProperty?: {
+      description?: string
+      clientShare?: string
+      valueOfShare?: number
+      totalValue?: number
+    }[]
+    financialResources?: {
+      description?: string
+      clientShare?: string
+      valueOfShare?: number
+      totalValue?: number
+    }[]
+    addbacks?: {
+      description?: string
+      clientShare?: string
+      valueOfShare?: number
+      totalValue?: number
+    }[]
+  }
+  liabilityDetails?: {
+    creditCards?: {
+      cardProvider?: string
+      typeOfCard?: string
+      clientShare?: string
+      valueOfShare?: number
+      totalAmount?: number
+    }[]
+    loans?: {
+      nameOfLender?: string
+      typeOfLoan?: string
+      clientShare?: string
+      valueOfShare?: number
+      totalAmount?: number
+    }[]
+    hirePurchaseLeases?: {
+      nameOfLender?: string
+      descriptionOfProperty?: string
+      finalPayment?: string
+      clientShare?: string
+      valueOfShare?: number
+      totalAmount?: number
+    }[]
+    unpaidTax?: {
+      lastFinancialYear?: {
+        clientShare?: string
+        valueOfShare?: number
+        totalAmount?: number
+      }
+      previousFinancialYears?: {
+        clientShare?: string
+        valueOfShare?: number
+        totalAmount?: number
+      }
+    }
+    otherPersonalLiabilities?: {
+      description?: string
+      clientShare?: string
+      valueOfShare?: number
+      totalAmount?: number
+    }[]
+    otherBusinessLiabilities?: {
+      description?: string
+      clientShare?: string
+      valueOfShare?: number
+      totalAmount?: number
+    }[]
+  }
+  superannuationFund?: {
+    fund?: string
+    dateOfNoticeGiven?: string
+  }
+  spousalMaintenance?: {
+    agreed?: boolean
+    dateOfAgreement?: string
+    amount?: number
+    period?: string
+    nonPeriodicPayments?: string
+    letterOfNoObjection?: {
+      received?: boolean
+      date?: string
+    }
+  }
 }
 
-interface DocumentRowProps {
-  document: Document
-  matterId: number
-}
-
-const DocumentRowComponent: React.FC<DocumentRowProps> = ({ document, matterId }) => {
-  return (
-    <div className="px-4 py-3 grid grid-cols-12 items-center">
-      <div className="col-span-5 flex items-center space-x-3">
-        <FileText className="h-5 w-5 text-gray-400" />
-        <span className="font-medium">{document.name}</span>
-      </div>
-      <div className="col-span-2 text-sm text-gray-500">{document.type}</div>
-      <div className="col-span-2 text-sm text-gray-500">{document.date}</div>
-      <div className="col-span-2">
-        <Badge variant={document.status === "Filed" ? "default" : "outline"}>{document.status}</Badge>
-      </div>
-      <div className="col-span-1 text-right">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem>View Document</DropdownMenuItem>
-            <DropdownMenuItem>Download</DropdownMenuItem>
-            <DropdownMenuItem>Edit Details</DropdownMenuItem>
-            <DropdownMenuItem>Attach to Hearing</DropdownMenuItem>
-            <DropdownMenuItem>Publish Document</DropdownMenuItem>
-            <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </div>
-  )
-}
-
-// Helper function to format dates
-function formatDate(dateString: string) {
-  const options: Intl.DateTimeFormatOptions = { year: "numeric", month: "long", day: "numeric" }
-  return new Date(dateString).toLocaleDateString("en-AU", options)
-}
-
-// Helper function to format times
-function formatTime(dateString: string) {
-  const options: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit" }
-  return new Date(dateString).toLocaleTimeString("en-AU", options)
+// Define the LogEntry interface
+interface LogEntry {
+  id: string
+  type: string
+  date: string
+  time: string
+  timestamp: string
+  title: string
+  description: string
+  user: string
+  data: any
+  relatedEntries: string[]
 }
 
 export default function MatterDetailPage({ params }: { params: { id: string } }) {
-  // This would normally be fetched from an API
+  // State variables
   const [selectedEmail, setSelectedEmail] = useState<(typeof matter.emails)[0] | null>(null)
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null)
   const [selectedLogEntry, setSelectedLogEntry] = useState<LogEntry | null>(null)
@@ -276,6 +448,24 @@ export default function MatterDetailPage({ params }: { params: { id: string } })
   })
   const [composeEmail, setComposeEmail] = useState(false)
   const [emailMode, setEmailMode] = useState<"new" | "reply" | "replyAll" | "forward">("new")
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [filterType, setFilterType] = useState("all")
+  const [showFilters, setShowFilters] = useState(false)
+  const [sortField, setSortField] = useState("date")
+
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
+
+  const [selectedEntries, setSelectedEntries] = useState<string[]>([])
+
+  // State for client role and relationship
+  const [clientRole, setClientRole] = useState<string>("Applicant")
+  const [clientRelationship, setClientRelationship] = useState<string>("Father/Husband")
+  const [otherPartyRole, setOtherPartyRole] = useState<string>("Respondent")
+  const [otherPartyRelationship, setOtherPartyRelationship] = useState<string>("Mother/Wife")
+
+  const [detailsRequested, setDetailsRequested] = useState(false)
+  const [showDetailRequestDialog, setShowDetailRequestDialog] = useState(false)
 
   // Mock data for the matter details
   const matter: Matter = {
@@ -305,6 +495,8 @@ export default function MatterDetailPage({ params }: { params: { id: string } })
         email: "john.smith@example.com",
         phone: "(555) 123-4567",
         tags: ["ESL", "Hard of Hearing"],
+        role: "Applicant",
+        relationship: "Father/Husband",
       },
     ],
     opposingParties: [
@@ -314,6 +506,8 @@ export default function MatterDetailPage({ params }: { params: { id: string } })
         email: "jane.smith@example.com",
         phone: "(555) 765-4321",
         tags: [],
+        role: "Respondent",
+        relationship: "Mother/Wife",
       },
     ],
     otherParties: [
@@ -324,6 +518,7 @@ export default function MatterDetailPage({ params }: { params: { id: string } })
         phone: "(555) 987-6543",
         role: "Independent Children's Lawyer",
         tags: [],
+        relationship: "Other",
       },
       {
         id: 4,
@@ -332,11 +527,28 @@ export default function MatterDetailPage({ params }: { params: { id: string } })
         phone: "(555) 234-5678",
         role: "Second Respondent",
         tags: ["Elderly"],
+        relationship: "Grandparent",
       },
     ],
     children: [
-      { id: 1, name: "Michael Smith", age: 10, livingWith: "Mother" },
-      { id: 2, name: "Sarah Smith", age: 8, livingWith: "Mother" },
+      {
+        id: 1,
+        name: "Michael Smith",
+        age: 10,
+        livingWith: "Mother",
+        primaryCareGiver: "Mother",
+        school: "Newtown Public School",
+        grade: "4",
+      },
+      {
+        id: 2,
+        name: "Sarah Smith",
+        age: 8,
+        livingWith: "Mother",
+        primaryCareGiver: "Mother",
+        school: "Newtown Public School",
+        grade: "2",
+      },
     ],
     property: [
       { id: 1, type: "Real Estate", description: "Family Home", value: "$750,000", notes: "Joint ownership" },
@@ -458,15 +670,15 @@ export default function MatterDetailPage({ params }: { params: { id: string } })
         subject: "Re: Initial Consultation",
         preview: "Thank you for meeting with me yesterday. I've attached the documents you requested...",
         content: `<p>Dear Sarah,</p>
-  <p>Thank you for meeting with me yesterday. I've attached the documents you requested during our initial consultation.</p>
-  <p>These include:</p>
-  <ul>
-    <li>Bank statements from the last 6 months</li>
-    <li>Property deed for our family home</li>
-    <li>Children's school enrollment information</li>
-  </ul>
-  <p>Please let me know if you need anything else from me at this time.</p>
-  <p>Regards,<br>John Smith</p>`,
+<p>Thank you for meeting with me yesterday. I've attached the documents you requested during our initial consultation.</p>
+<p>These include:</p>
+<ul>
+<li>Bank statements from the last 6 months</li>
+<li>Property deed for our family home</li>
+<li>Children's school enrollment information</li>
+</ul>
+<p>Please let me know if you need anything else from me at this time.</p>
+<p>Regards,<br>John Smith</p>`,
         hasAttachments: true,
         attachments: [
           { id: 101, name: "Bank_Statements_July-Dec.pdf", type: "PDF", size: "2.4 MB" },
@@ -484,15 +696,15 @@ export default function MatterDetailPage({ params }: { params: { id: string } })
         subject: "Financial Disclosure Requirements",
         preview: "As discussed in our meeting, I need the following financial documents to proceed...",
         content: `<p>Dear John,</p>
-  <p>Following our recent meeting, I wanted to outline the financial documents we'll need to proceed with your case:</p>
-  <ol>
-    <li>Complete tax returns for the past 3 years</li>
-    <li>Statements for all retirement and investment accounts</li>
-    <li>Documentation of any outstanding loans or debts</li>
-    <li>Recent pay stubs (last 3 months)</li>
-  </ol>
-  <p>I've attached our standard financial disclosure form for you to complete. Please return this at your earliest convenience.</p>
-  <p>Best regards,<br>Sarah Johnson<br>Family Law Attorney</p>`,
+<p>Following our recent meeting, I wanted to outline the financial documents we'll need to proceed with your case:</p>
+<ol>
+<li>Complete tax returns for the past 3 years</li>
+<li>Statements for all retirement and investment accounts</li>
+<li>Documentation of any outstanding loans or debts</li>
+<li>Recent pay stubs (last 3 months)</li>
+</ol>
+<p>I've attached our standard financial disclosure form for you to complete. Please return this at your earliest convenience.</p>
+<p>Best regards,<br>Sarah Johnson<br>Family Law Attorney</p>`,
         hasAttachments: true,
         attachments: [{ id: 201, name: "Financial_Disclosure_Form.pdf", type: "PDF", size: "850 KB" }],
         relatedDocumentId: 2,
@@ -507,15 +719,15 @@ export default function MatterDetailPage({ params }: { params: { id: string } })
         subject: "Smith vs. Smith - Initial Disclosure",
         preview: "Please find attached the initial disclosure documents for our client, Jane Smith...",
         content: `<p>Counselor Johnson,</p>
-  <p>Please find attached the initial disclosure documents for our client, Jane Smith, in the matter of Smith vs. Smith.</p>
-  <p>The documents include:</p>
-  <ul>
-    <li>Financial statement</li>
-    <li>Asset inventory</li>
-    <li>Proposed parenting plan</li>
-  </ul>
-  <p>We look forward to working with you to reach an amicable resolution in this matter.</p>
-  <p>Regards,<br>James Wilson<br>Wilson Family Law</p>`,
+<p>Please find attached the initial disclosure documents for our client, Jane Smith, in the matter of Smith vs. Smith.</p>
+<p>The documents include:</p>
+<ul>
+<li>Financial statement</li>
+<li>Asset inventory</li>
+<li>Proposed parenting plan</li>
+</ul>
+<p>We look forward to working with you to reach an amicable resolution in this matter.</p>
+<p>Regards,<br>James Wilson<br>Wilson Family Law</p>`,
         hasAttachments: true,
         attachments: [
           { id: 301, name: "Jane_Smith_Financial_Statement.pdf", type: "PDF", size: "1.8 MB" },
@@ -533,10 +745,10 @@ export default function MatterDetailPage({ params }: { params: { id: string } })
         subject: "Draft Financial Disclosure for Review",
         preview: "I've prepared the financial disclosure based on the documents you provided...",
         content: `<p>Dear John,</p>
-  <p>I've prepared the financial disclosure based on the documents you provided. Please review the attached draft and let me know if any changes are needed before we finalize it.</p>
-  <p>I've highlighted a few areas where we might need additional information or clarification.</p>
-  <p>Please review at your earliest convenience as we need to file this by next week.</p>
-  <p>Best regards,<br>Sarah Johnson<br>Family Law Attorney</p>`,
+<p>I've prepared the financial disclosure based on the documents you provided. Please review the attached draft and let me know if any changes are needed before we finalize it.</p>
+<p>I've highlighted a few areas where we might need additional information or clarification.</p>
+<p>Please review at your earliest convenience as we need to file this by next week.</p>
+<p>Best regards,<br>Sarah Johnson<br>Family Law Attorney</p>`,
         hasAttachments: true,
         attachments: [{ id: 401, name: "Draft_Financial_Disclosure.pdf", type: "PDF", size: "1.2 MB" }],
         relatedDocumentId: 2,
@@ -547,6 +759,7 @@ export default function MatterDetailPage({ params }: { params: { id: string } })
     hasConflictAlert: true,
     conflictAlertMessage:
       "Potential conflict of interest - Partner previously represented opposing party in unrelated matter",
+    conflictStatus: "Manual Review Pending",
     timeline: [
       {
         id: 1,
@@ -677,7 +890,6 @@ export default function MatterDetailPage({ params }: { params: { id: string } })
         date: "Mar 10, 2023",
         time: "2:45 PM",
         type: "call",
-        title: "Phone Call",
         description: "Phone call with client to prepare for upcoming hearing",
         user: "Sarah Johnson",
         icon: "phone",
@@ -714,6 +926,235 @@ export default function MatterDetailPage({ params }: { params: { id: string } })
       date: "2023-05-20T10:00:00Z",
       location: "Family Court Sydney",
       type: "Directions Hearing",
+    },
+    createdByCurrentUser: true,
+    jurisdiction: "NSW",
+    courtDetails: {
+      court: "Federal Circuit and Family Court of Australia",
+      fileNumber: "FAM000123/2023",
+      registry: "Sydney",
+      judicialOfficer: "Judge Judy",
+    },
+    courtPleadings: [
+      {
+        type: "Initiating Application",
+        filed: "2023-01-15",
+        served: "2023-01-22",
+        response: "Response filed 2023-02-01",
+      },
+      {
+        type: "Financial Statement",
+        filed: "2023-01-20",
+        served: "2023-01-27",
+        response: "N/A",
+      },
+    ],
+    courtListings: [
+      {
+        type: "First Directions Hearing",
+        date: "2023-02-10",
+        time: "10:00 AM",
+        location: "Courtroom 1",
+      },
+      {
+        type: "Interim Hearing",
+        date: "2023-03-01",
+        time: "2:00 PM",
+        location: "Courtroom 2",
+      },
+    ],
+    relationshipDetails: {
+      cohabitationDate: "2010-01-01",
+      marriageDate: "2012-06-15",
+      marriageTown: "Sydney",
+      marriageCountry: "Australia",
+      separationDate: "2022-12-31",
+      divorceDate: "2024-01-01",
+    },
+    childSupport: {
+      referenceNumber: "1234567890",
+      bindingAgreementDate: "2023-03-15",
+      limitedAgreementDate: "2023-04-01",
+    },
+    realEstateDetails: {
+      properties: [
+        {
+          buildingLevel: "Level 3",
+          unit: "301",
+          street: "123 Main Street",
+          suburb: "Sydney",
+          titleReference: "1234567/890",
+          formerMatrimonialHome: true,
+          tenancy: "Owner Occupied",
+          clientShare: "50",
+          valueOfShare: 375000,
+          totalValue: 750000,
+          mortgages: [
+            {
+              nameOfLender: "Commonwealth Bank",
+              clientShare: "50",
+              amountOfShare: 175000,
+              totalAmount: 350000,
+            },
+          ],
+        },
+      ],
+    },
+    otherAssets: {
+      motorVehicles: [
+        {
+          make: "Toyota",
+          model: "Camry",
+          year: "2020",
+          registrationNo: "ABC123",
+          clientShare: "100",
+          valueOfShare: 17500,
+          totalValue: 35000,
+        },
+      ],
+      householdContents: [
+        {
+          description: "Furniture and Appliances",
+          clientShare: "50",
+          valueOfShare: 25000,
+          totalValue: 50000,
+        },
+      ],
+      bankAccounts: [
+        {
+          institution: "Westpac",
+          accountNo: "1234567890",
+          bsb: "032000",
+          clientShare: "50",
+          valueOfShare: 62500,
+          totalValue: 125000,
+        },
+      ],
+      businesses: [
+        {
+          name: "Smith & Co",
+          type: "Consulting",
+          address: "456 Business Street",
+          clientShare: "50",
+          valueOfShare: 150000,
+          totalValue: 300000,
+        },
+      ],
+      investments: [
+        {
+          name: "Shares",
+          type: "ASX",
+          numberOfShares: "1000",
+          clientShare: "50",
+          valueOfShare: 50000,
+          totalValue: 100000,
+        },
+      ],
+      lifeInsurance: [
+        {
+          nameOfCompany: "AMP",
+          policyType: "Term Life",
+          policyNo: "L123456",
+          surrenderValue: 10000,
+        },
+      ],
+      otherPersonalProperty: [
+        {
+          description: "Jewellery",
+          clientShare: "50",
+          valueOfShare: 2500,
+          totalValue: 5000,
+        },
+      ],
+      financialResources: [
+        {
+          description: "Tax Refund",
+          clientShare: "100",
+          valueOfShare: 1000,
+          totalValue: 1000,
+        },
+      ],
+      addbacks: [
+        {
+          description: "Gambling Losses",
+          clientShare: "100",
+          valueOfShare: 5000,
+          totalValue: 5000,
+        },
+      ],
+    },
+    liabilityDetails: {
+      creditCards: [
+        {
+          cardProvider: "ANZ",
+          typeOfCard: "Visa",
+          clientShare: "50",
+          valueOfShare: 7500,
+          totalAmount: 15000,
+        },
+      ],
+      loans: [
+        {
+          nameOfLender: "NAB",
+          typeOfLoan: "Personal Loan",
+          clientShare: "50",
+          valueOfShare: 10000,
+          totalAmount: 20000,
+        },
+      ],
+      hirePurchaseLeases: [
+        {
+          nameOfLender: "Latitude",
+          descriptionOfProperty: "Car",
+          finalPayment: "2024-01-01",
+          clientShare: "50",
+          valueOfShare: 2500,
+          totalAmount: 5000,
+        },
+      ],
+      unpaidTax: {
+        lastFinancialYear: {
+          clientShare: "50",
+          valueOfShare: 2500,
+          totalAmount: 5000,
+        },
+        previousFinancialYears: {
+          clientShare: "50",
+          valueOfShare: 5000,
+          totalAmount: 10000,
+        },
+      },
+      otherPersonalLiabilities: [
+        {
+          description: "Personal Debt",
+          clientShare: "50",
+          valueOfShare: 2500,
+          totalAmount: 5000,
+        },
+      ],
+      otherBusinessLiabilities: [
+        {
+          description: "Business Loan",
+          clientShare: "50",
+          valueOfShare: 5000,
+          totalAmount: 10000,
+        },
+      ],
+    },
+    superannuationFund: {
+      fund: "AustralianSuper",
+      dateOfNoticeGiven: "2023-01-01",
+    },
+    spousalMaintenance: {
+      agreed: true,
+      dateOfAgreement: "2023-01-01",
+      amount: 1000,
+      period: "month",
+      nonPeriodicPayments: "N/A",
+      letterOfNoObjection: {
+        received: true,
+        date: "2023-01-01",
+      },
     },
   }
 
@@ -904,23 +1345,80 @@ export default function MatterDetailPage({ params }: { params: { id: string } })
     }
   }
 
-  // Filter log entries based on selected filters
-  const filteredLogEntries = matter.logEntries?.filter((entry) => {
-    if (entry.type === "document" && !logFilters.documents) return false
-    if (entry.type === "email" && !logFilters.emails) return false
-    if (entry.type === "note" && !logFilters.notes) return false
-    if (entry.type === "call" && !logFilters.calls) return false
-    if (entry.type === "hearing" && !logFilters.hearings) return false
-    if (entry.type === "status" && !logFilters.status) return false
-    return true
-  })
-
-  // Function to format date as "Month Day, Year"
-  const formatDateOriginal = (dateString: string) => {
-    const date = new Date(dateString)
-    const options: Intl.DateTimeFormatOptions = { year: "numeric", month: "long", day: "numeric" }
-    return date.toLocaleDateString(undefined, options)
+  // Function to handle sort
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      // Toggle direction if same field
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
+    } else {
+      // Set new field and default to descending
+      setSortField(field)
+      setSortDirection("desc")
+    }
   }
+
+  // Handle checkbox selection
+  const toggleEntrySelection = (id: string) => {
+    setSelectedEntries((prev) => (prev.includes(id) ? prev.filter((entryId) => entryId !== id) : [...prev, id]))
+  }
+
+  // Handle select all
+  const toggleSelectAll = () => {
+    if (selectedEntries.length === filteredLogEntries.length) {
+      setSelectedEntries([])
+    } else {
+      setSelectedEntries(filteredLogEntries.map((entry) => entry.id))
+    }
+  }
+
+  // Filter and sort entries
+  const filteredLogEntries =
+    matter.logEntries
+      ?.filter((entry) => {
+        const matchesType = filterType === "all" || entry.type === filterType
+        const matchesSearch =
+          searchQuery === "" ||
+          entry.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          entry.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          entry.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (entry.data.from && entry.data.from.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (entry.data.to && entry.data.to.toLowerCase().includes(searchQuery.toLowerCase()))
+
+        return matchesType && matchesSearch
+      })
+      .sort((a, b) => {
+        let aValue, bValue
+
+        // Determine values to compare based on sort field
+        switch (sortField) {
+          case "date":
+            aValue = new Date(`${a.date} ${a.time}`).getTime()
+            bValue = new Date(`${b.date} ${b.time}`).getTime()
+            break
+          case "type":
+            aValue = a.type
+            bValue = b.type
+            break
+          case "title":
+            aValue = a.title
+            bValue = b.title
+            break
+          case "user":
+            aValue = a.user
+            bValue = b.user
+            break
+          default:
+            aValue = new Date(`${a.date} ${a.time}`).getTime()
+            bValue = new Date(`${b.date} ${b.time}`).getTime()
+        }
+
+        // Apply sort direction
+        if (sortDirection === "asc") {
+          return aValue > bValue ? 1 : -1
+        } else {
+          return aValue < bValue ? 1 : -1
+        }
+      }) || []
 
   // Group log entries by date
   const entriesByDate = filteredLogEntries?.reduce((acc: { [key: string]: LogEntry[] }, entry) => {
@@ -945,6 +1443,47 @@ export default function MatterDetailPage({ params }: { params: { id: string } })
   // Sort dates in reverse chronological order (latest first)
   const sortedDates = Object.keys(timelineByDate).sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
 
+  // Handle request further detail
+  const handleRequestFurtherDetail = () => {
+    setShowDetailRequestDialog(true)
+  }
+
+  const handleDetailRequestSent = () => {
+    setDetailsRequested(true)
+    // In a real app, this would update the matter status in the database
+  }
+
+  const sendFurtherDetailRequest = () => {
+    // In a real app, this would send an email or notification to the client
+    alert("Further detail request has been sent to the client")
+    setShowConfirmDialog(false)
+  }
+
+  // Handle role and relationship changes
+  const handleClientRoleChange = (value: string) => {
+    setClientRole(value)
+    // Update the client's role in the matter object
+    matter.clients[0].role = value
+  }
+
+  const handleClientRelationshipChange = (value: string) => {
+    setClientRelationship(value)
+    // Update the client's relationship in the matter object
+    matter.clients[0].relationship = value
+  }
+
+  const handleOtherSideRoleChange = (value: string) => {
+    setOtherPartyRole(value)
+    // Update the other side's role in the matter object
+    matter.opposingParties[0].role = value
+  }
+
+  const handleOtherSideRelationshipChange = (value: string) => {
+    setOtherPartyRelationship(value)
+    // Update the other side's relationship in the matter object
+    matter.opposingParties[0].relationship = value
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -965,7 +1504,7 @@ export default function MatterDetailPage({ params }: { params: { id: string } })
           {matter.hasConflictAlert && (
             <Badge variant="outline" className="flex items-center gap-1 border-amber-300 text-amber-700">
               <AlertTriangle className="h-3 w-3 text-amber-500" />
-              Conflict
+              Conflict: {matter.conflictStatus}
             </Badge>
           )}
         </div>
@@ -974,6 +1513,16 @@ export default function MatterDetailPage({ params }: { params: { id: string } })
             <Edit className="mr-2 h-4 w-4" />
             Edit Matter
           </Button>
+          {matter.createdByCurrentUser && (
+            <Button
+              variant={detailsRequested ? "outline" : "outline"}
+              className={detailsRequested ? "border-amber-500 text-amber-700 bg-amber-50" : ""}
+              onClick={handleRequestFurtherDetail}
+            >
+              <Send className="mr-2 h-4 w-4" />
+              {detailsRequested ? "Further detail requested" : "Request Further Detail"}
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon">
@@ -1075,7 +1624,14 @@ export default function MatterDetailPage({ params }: { params: { id: string } })
                     </Avatar>
                     <div>
                       <p className="font-medium">{client.name}</p>
-                      <p className="text-xs text-gray-500">{client.email}</p>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        <Badge variant="secondary" className="text-xs py-0 px-1">
+                          {client.role || clientRole}
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs py-0 px-1">
+                          {client.relationship || clientRelationship}
+                        </Badge>
+                      </div>
                       {client.tags && client.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-1">
                           {client.tags.map((tag, index) => (
@@ -1095,7 +1651,46 @@ export default function MatterDetailPage({ params }: { params: { id: string } })
                 </div>
               ))}
               <div className="pt-2">
-                <Button variant="outline" size="sm" className="w-full">
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <Label htmlFor="clientRole">Role</Label>
+                    <Select value={clientRole} onValueChange={handleClientRoleChange}>
+                      <SelectTrigger id="clientRole">
+                        <SelectValue placeholder="Select role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Applicant">Applicant</SelectItem>
+                        <SelectItem value="Respondent">Respondent</SelectItem>
+                        <SelectItem value="First Respondent">First Respondent</SelectItem>
+                        <SelectItem value="Second Respondent">Second Respondent</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="clientRelationship">Relationship</Label>
+                    <Select value={clientRelationship} onValueChange={handleClientRelationshipChange}>
+                      <SelectTrigger id="clientRelationship">
+                        <SelectValue placeholder="Select relationship" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Mother">Mother</SelectItem>
+                        <SelectItem value="Father">Father</SelectItem>
+                        <SelectItem value="Husband">Husband</SelectItem>
+                        <SelectItem value="Wife">Wife</SelectItem>
+                        <SelectItem value="Defacto Husband">Defacto Husband</SelectItem>
+                        <SelectItem value="Defacto Wife">Defacto Wife</SelectItem>
+                        <SelectItem value="Defacto Spouse">Defacto Spouse</SelectItem>
+                        <SelectItem value="Mother/Wife">Mother/Wife</SelectItem>
+                        <SelectItem value="Father/Husband">Father/Husband</SelectItem>
+                        <SelectItem value="Grandparent">Grandparent</SelectItem>
+                        <SelectItem value="Aunt">Aunt</SelectItem>
+                        <SelectItem value="Uncle">Uncle</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" className="w-full mt-4">
                   <Plus className="h-3 w-3 mr-1" /> Add Client
                 </Button>
               </div>
@@ -1105,7 +1700,7 @@ export default function MatterDetailPage({ params }: { params: { id: string } })
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Other Parties</CardTitle>
+            <CardTitle className="text-lg">Other Sides</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -1117,7 +1712,14 @@ export default function MatterDetailPage({ params }: { params: { id: string } })
                     </Avatar>
                     <div>
                       <p className="font-medium">{party.name}</p>
-                      <p className="text-xs text-gray-500">{party.email}</p>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        <Badge variant="secondary" className="text-xs py-0 px-1">
+                          {party.role || otherPartyRole}
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs py-0 px-1">
+                          {party.relationship || otherPartyRelationship}
+                        </Badge>
+                      </div>
                       {party.tags && party.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-1">
                           {party.tags.map((tag, index) => (
@@ -1137,8 +1739,47 @@ export default function MatterDetailPage({ params }: { params: { id: string } })
                 </div>
               ))}
               <div className="pt-2">
-                <Button variant="outline" size="sm" className="w-full">
-                  <Plus className="h-3 w-3 mr-1" /> Add Other Party
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <Label htmlFor="otherSideRole">Role</Label>
+                    <Select value={otherPartyRole} onValueChange={handleOtherSideRoleChange}>
+                      <SelectTrigger id="otherSideRole">
+                        <SelectValue placeholder="Select role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Applicant">Applicant</SelectItem>
+                        <SelectItem value="Respondent">Respondent</SelectItem>
+                        <SelectItem value="First Respondent">First Respondent</SelectItem>
+                        <SelectItem value="Second Respondent">Second Respondent</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="otherSideRelationship">Relationship</Label>
+                    <Select value={otherPartyRelationship} onValueChange={handleOtherSideRelationshipChange}>
+                      <SelectTrigger id="otherSideRelationship">
+                        <SelectValue placeholder="Select relationship" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Mother">Mother</SelectItem>
+                        <SelectItem value="Father">Father</SelectItem>
+                        <SelectItem value="Husband">Husband</SelectItem>
+                        <SelectItem value="Wife">Wife</SelectItem>
+                        <SelectItem value="Defacto Husband">Defacto Husband</SelectItem>
+                        <SelectItem value="Defacto Wife">Defacto Wife</SelectItem>
+                        <SelectItem value="Defacto Spouse">Defacto Spouse</SelectItem>
+                        <SelectItem value="Mother/Wife">Mother/Wife</SelectItem>
+                        <SelectItem value="Father/Husband">Father/Husband</SelectItem>
+                        <SelectItem value="Grandparent">Grandparent</SelectItem>
+                        <SelectItem value="Aunt">Aunt</SelectItem>
+                        <SelectItem value="Uncle">Uncle</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" className="w-full mt-4">
+                  <Plus className="h-3 w-3 mr-1" /> Add Other Side
                 </Button>
               </div>
             </div>
@@ -1190,221 +1831,641 @@ export default function MatterDetailPage({ params }: { params: { id: string } })
         </Card>
       </div>
 
-      <Tabs defaultValue="chronology">
+      <Tabs defaultValue="matter-detail">
         <TabsList>
+          <TabsTrigger value="matter-detail">Matter Detail</TabsTrigger>
           <TabsTrigger value="chronology">Matter Chronology</TabsTrigger>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="hearings">Court Hearings</TabsTrigger>
           <TabsTrigger value="children">Children</TabsTrigger>
           <TabsTrigger value="property">Property & Financials</TabsTrigger>
+          <TabsTrigger value="relationship">Relationship Details</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="matter-detail" className="mt-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Matter Details</CardTitle>
+              <Button variant="outline">
+                <Edit className="h-4 w-4 mr-2" /> Edit Details
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="case-detail">
+                <TabsList className="mb-4">
+                  <TabsTrigger value="case-detail">Case Detail</TabsTrigger>
+                  <TabsTrigger value="jurisdiction">Jurisdiction</TabsTrigger>
+                  <TabsTrigger value="court-details">Court Details</TabsTrigger>
+                  <TabsTrigger value="court-pleadings">Court Pleadings</TabsTrigger>
+                  <TabsTrigger value="court-listings">Court Listings</TabsTrigger>
+                  <TabsTrigger value="statutory">Statutory Limitations</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="case-detail">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h3 className="text-lg font-medium mb-4">Matter Information</h3>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="matter-type">Matter Type</Label>
+                          <Select defaultValue={matter.type}>
+                            <SelectTrigger id="matter-type">
+                              <SelectValue placeholder="Select matter type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Children & Property">Children & Property</SelectItem>
+                              <SelectItem value="Property Only">Property Only</SelectItem>
+                              <SelectItem value="Children Only">Children Only</SelectItem>
+                              <SelectItem value="Divorce">Divorce</SelectItem>
+                              <SelectItem value="Other">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div>
+                          <Label htmlFor="jurisdiction">Jurisdiction</Label>
+                          <Select defaultValue="Family Law Act 1975 (Cth)">
+                            <SelectTrigger id="jurisdiction">
+                              <SelectValue placeholder="Select jurisdiction" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Family Law Act 1975 (Cth)">Family Law Act 1975 (Cth)</SelectItem>
+                              <SelectItem value="Family Court Act 1997 (WA)">Family Court Act 1997 (WA)</SelectItem>
+                              <SelectItem value="Other">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div>
+                          <Label htmlFor="billing-type">Billing Type</Label>
+                          <Select defaultValue={matter.billingType}>
+                            <SelectTrigger id="billing-type">
+                              <SelectValue placeholder="Select billing type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Time Based">Time Based</SelectItem>
+                              <SelectItem value="Fixed Fee">Fixed Fee</SelectItem>
+                              <SelectItem value="No Win No Fee">No Win No Fee</SelectItem>
+                              <SelectItem value="Legal Aid">Legal Aid</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div>
+                          <Label htmlFor="opened-date">Opened Date</Label>
+                          <Input type="date" id="opened-date" defaultValue={matter.matterOpened} />
+                        </div>
+
+                        {matter.matterClosed && (
+                          <div>
+                            <Label htmlFor="closed-date">Closed Date</Label>
+                            <Input type="date" id="closed-date" defaultValue={matter.matterClosed} />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-medium mb-4">Staff Assignment</h3>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="partner-supervising">Partner Supervising</Label>
+                          <Select defaultValue={matter.partnerSupervising?.id.toString() || ""}>
+                            <SelectTrigger id="partner-supervising">
+                              <SelectValue placeholder="Select partner" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="302">Michael Roberts</SelectItem>
+                              <SelectItem value="303">Jessica Adams</SelectItem>
+                              <SelectItem value="304">David Wilson</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div>
+                          <Label htmlFor="assigned-lawyer">Assigned Lawyer</Label>
+                          <Select defaultValue={matter.assignedTo?.id.toString() || ""}>
+                            <SelectTrigger id="assigned-lawyer">
+                              <SelectValue placeholder="Select lawyer" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="301">Sarah Williams</SelectItem>
+                              <SelectItem value="302">Michael Roberts</SelectItem>
+                              <SelectItem value="303">Jessica Adams</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div>
+                          <Label htmlFor="assisting-lawyer">Assisting Lawyer</Label>
+                          <Select defaultValue={matter.assistingLawyer?.id.toString() || ""}>
+                            <SelectTrigger id="assisting-lawyer">
+                              <SelectValue placeholder="Select assisting lawyer" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="303">Jessica Adams</SelectItem>
+                              <SelectItem value="304">David Wilson</SelectItem>
+                              <SelectItem value="305">Emily Johnson</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="jurisdiction">
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-lg font-medium mb-4">Jurisdiction Details</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="jurisdiction-type">Jurisdiction Type</Label>
+                          <Select defaultValue="Family Law Act 1975 (Cth)">
+                            <SelectTrigger id="jurisdiction-type">
+                              <SelectValue placeholder="Select jurisdiction" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Family Law Act 1975 (Cth)">Family Law Act 1975 (Cth)</SelectItem>
+                              <SelectItem value="Family Court Act 1997 (WA)">Family Court Act 1997 (WA)</SelectItem>
+                              <SelectItem value="Other">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="state">State/Territory</Label>
+                          <Select defaultValue={matter.jurisdiction || "NSW"}>
+                            <SelectTrigger id="state">
+                              <SelectValue placeholder="Select state/territory" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="NSW">New South Wales</SelectItem>
+                              <SelectItem value="VIC">Victoria</SelectItem>
+                              <SelectItem value="QLD">Queensland</SelectItem>
+                              <SelectItem value="WA">Western Australia</SelectItem>
+                              <SelectItem value="SA">South Australia</SelectItem>
+                              <SelectItem value="TAS">Tasmania</SelectItem>
+                              <SelectItem value="ACT">Australian Capital Territory</SelectItem>
+                              <SelectItem value="NT">Northern Territory</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="court-details">
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium mb-4">Court Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="court">Court</Label>
+                        <Select defaultValue={matter.courtDetails?.court || ""}>
+                          <SelectTrigger id="court">
+                            <SelectValue placeholder="Select court" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Federal Circuit and Family Court of Australia">
+                              Federal Circuit and Family Court of Australia
+                            </SelectItem>
+                            <SelectItem value="Family Court of Western Australia">
+                              Family Court of Western Australia
+                            </SelectItem>
+                            <SelectItem value="Local Court">Local Court</SelectItem>
+                            <SelectItem value="District Court">District Court</SelectItem>
+                            <SelectItem value="Supreme Court">Supreme Court</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="file-number">File Number</Label>
+                        <Input
+                          type="text"
+                          id="file-number"
+                          placeholder="Enter file number"
+                          defaultValue={matter.courtDetails?.fileNumber || ""}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="registry">Registry</Label>
+                        <Select defaultValue={matter.courtDetails?.registry || ""}>
+                          <SelectTrigger id="registry">
+                            <SelectValue placeholder="Select registry" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Sydney">Sydney</SelectItem>
+                            <SelectItem value="Melbourne">Melbourne</SelectItem>
+                            <SelectItem value="Brisbane">Brisbane</SelectItem>
+                            <SelectItem value="Perth">Perth</SelectItem>
+                            <SelectItem value="Adelaide">Adelaide</SelectItem>
+                            <SelectItem value="Hobart">Hobart</SelectItem>
+                            <SelectItem value="Darwin">Darwin</SelectItem>
+                            <SelectItem value="Canberra">Canberra</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="judicial-officer">Judicial Officer</Label>
+                        <Input
+                          type="text"
+                          id="judicial-officer"
+                          placeholder="Enter judicial officer"
+                          defaultValue={matter.courtDetails?.judicialOfficer || ""}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="court-pleadings">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-medium">Court Pleadings</h3>
+                      <Button size="sm">
+                        <Plus className="h-3 w-3 mr-1" /> Add Pleading
+                      </Button>
+                    </div>
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Pleading</TableHead>
+                            <TableHead>Filed</TableHead>
+                            <TableHead>Served</TableHead>
+                            <TableHead>Response</TableHead>
+                            <TableHead className="w-[100px]">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {matter.courtPleadings && matter.courtPleadings.length > 0 ? (
+                            matter.courtPleadings.map((pleading, index) => (
+                              <TableRow key={index}>
+                                <TableCell>{pleading.type}</TableCell>
+                                <TableCell>{pleading.filed || "Not filed"}</TableCell>
+                                <TableCell>{pleading.served || "Not served"}</TableCell>
+                                <TableCell>{pleading.response || "No response"}</TableCell>
+                                <TableCell>
+                                  <div className="flex space-x-1">
+                                    <Button variant="ghost" size="sm">
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="ghost" size="sm">
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          ) : (
+                            <TableRow>
+                              <TableCell colSpan={5} className="text-center py-4 text-gray-500">
+                                No court pleadings recorded
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="court-listings">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-medium">Court Listings</h3>
+                      <Button size="sm">
+                        <Plus className="h-3 w-3 mr-1" /> Add Court Listing
+                      </Button>
+                    </div>
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Court Listing</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Time</TableHead>
+                            <TableHead>Location</TableHead>
+                            <TableHead className="w-[100px]">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {matter.courtListings && matter.courtListings.length > 0 ? (
+                            matter.courtListings.map((listing, index) => (
+                              <TableRow key={index}>
+                                <TableCell>{listing.type}</TableCell>
+                                <TableCell>{listing.date || "Not scheduled"}</TableCell>
+                                <TableCell>{listing.time || "Not specified"}</TableCell>
+                                <TableCell>{listing.location || "Not specified"}</TableCell>
+                                <TableCell>
+                                  <div className="flex space-x-1">
+                                    <Button variant="ghost" size="sm">
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="ghost" size="sm">
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          ) : (
+                            <TableRow>
+                              <TableCell colSpan={5} className="text-center py-4 text-gray-500">
+                                No court listings recorded
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="statutory">
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium mb-4">Statutory Limitation Period</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="limitation-date">Limitation Date</Label>
+                        <Input type="date" id="limitation-date" placeholder="Select a date" />
+                      </div>
+                      <div>
+                        <Label htmlFor="limitation-notes">Notes</Label>
+                        <Input type="text" id="limitation-notes" placeholder="Enter notes about limitation period" />
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="chronology" className="mt-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Matter Chronology</CardTitle>
               <div className="flex items-center space-x-2">
-                <Select defaultValue="all">
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="All Activities" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Activities</SelectItem>
-                    <SelectItem value="document">Documents</SelectItem>
-                    <SelectItem value="email">Emails</SelectItem>
-                    <SelectItem value="note">Notes</SelectItem>
-                    <SelectItem value="call">Calls</SelectItem>
-                    <SelectItem value="hearing">Hearings</SelectItem>
-                    <SelectItem value="status">Status Updates</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Button variant="outline" size="sm">
+                  <Filter className="h-3 w-3 mr-1" /> Advanced Filter
+                </Button>
                 <Button variant="outline">
-                  <Download className="h-4 w-4 mr-2" /> Export Log
+                  <Download className="h-4 w-4 mr-2" /> Export
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-6">
-                {Object.entries(entriesByDate || {})
-                  .sort(([dateA], [dateB]) => new Date(dateB).getTime() - new Date(dateA).getTime())
-                  .map(([date, entries]) => (
-                    <div key={date} className="space-y-4">
-                      <h3 className="text-sm font-medium text-gray-700 sticky top-0 bg-white py-1 border-b">{date}</h3>
-                      <div className="relative">
-                        <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gray-200"></div>
-                        <div className="space-y-4">
-                          {entries.map((entry) => (
-                            <div key={entry.id} className="relative pl-14">
-                              <div
-                                className={`absolute left-0 top-0 h-10 w-10 rounded-full ${getActivityColor(entry.type)} flex items-center justify-center z-10`}
-                              >
-                                {getLogEntryIcon(entry.type)}
-                              </div>
-                              <div
-                                className="bg-white border rounded-lg p-4 cursor-pointer hover:border-gray-300"
-                                onClick={() => setSelectedLogEntry(entry)}
-                              >
-                                <div className="flex items-center justify-between mb-2">
-                                  <div className="flex items-center">
-                                    <span className="font-medium">{entry.title}</span>
-                                    <span className="text-xs text-gray-500 ml-2">{entry.time}</span>
-                                  </div>
-                                  <div className="flex items-center space-x-1">
-                                    {entry.type === "document" && (
-                                      <>
-                                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                                          <Download className="h-4 w-4" />
-                                        </Button>
-                                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                                          <Edit className="h-4 w-4" />
-                                        </Button>
-                                      </>
-                                    )}
-                                    {entry.type === "email" && (
-                                      <>
-                                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                                          <Eye className="h-4 w-4" />
-                                        </Button>
-                                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                                          <Paperclip className="h-4 w-4" />
-                                        </Button>
-                                      </>
-                                    )}
-                                    {entry.type === "note" && (
-                                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                                        <Edit className="h-4 w-4" />
-                                      </Button>
-                                    )}
-                                  </div>
-                                </div>
-                                <p className="text-sm text-gray-700">{entry.description}</p>
+              <div className="space-y-4">
+                <div className="flex items-center space-x-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Search..."
+                      className="pl-8"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+                  <Select value={filterType} onValueChange={setFilterType}>
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue placeholder="All Activities" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Activities</SelectItem>
+                      <SelectItem value="document">Documents</SelectItem>
+                      <SelectItem value="email">Emails</SelectItem>
+                      <SelectItem value="note">Notes</SelectItem>
+                      <SelectItem value="call">Calls</SelectItem>
+                      <SelectItem value="hearing">Hearings</SelectItem>
+                      <SelectItem value="status">Status Updates</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                                {/* Show attachments for emails */}
-                                {entry.type === "email" && entry.data.hasAttachments && (
-                                  <div className="mt-2 pt-1">
-                                    <div className="flex items-center text-xs text-gray-500">
-                                      <Paperclip className="h-3 w-3 mr-1" />
-                                      <span>Has attachments</span>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                {showFilters && (
+                  <div className="mb-4 p-4 border rounded-md bg-gray-50">
+                    <div className="flex flex-wrap gap-4">
+                      <div className="w-[200px]">
+                        <label className="text-sm font-medium mb-1 block">Date Range</label>
+                        <Select defaultValue="all-time">
+                          <SelectTrigger>
+                            <SelectValue placeholder="All Time" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all-time">All Time</SelectItem>
+                            <SelectItem value="last-week">Last Week</SelectItem>
+                            <SelectItem value="last-month">Last Month</SelectItem>
+                            <SelectItem value="last-3-months">Last 3 Months</SelectItem>
+                            <SelectItem value="last-6-months">Last 6 Months</SelectItem>
+                            <SelectItem value="last-year">Last Year</SelectItem>
+                            <SelectItem value="custom">Custom Range</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="w-[200px]">
+                        <label className="text-sm font-medium mb-1 block">User</label>
+                        <Select defaultValue="all-users">
+                          <SelectTrigger>
+                            <SelectValue placeholder="All Users" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all-users">All Users</SelectItem>
+                            <SelectItem value="sarah-johnson">Sarah Johnson</SelectItem>
+                            <SelectItem value="john-smith">John Smith</SelectItem>
+                            <SelectItem value="opposing-counsel">Opposing Counsel</SelectItem>
+                            <SelectItem value="system">System</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
-                  ))}
+                  </div>
+                )}
+
+                <div className="border rounded-md">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[40px]">
+                          <Checkbox
+                            checked={
+                              selectedEntries.length === filteredLogEntries.length && filteredLogEntries.length > 0
+                            }
+                            onCheckedChange={toggleSelectAll}
+                            aria-label="Select all"
+                          />
+                        </TableHead>
+                        <TableHead className="w-[150px] cursor-pointer" onClick={() => handleSort("date")}>
+                          <div className="flex items-center">
+                            Date
+                            {sortField === "date" && (
+                              <span className="ml-1">
+                                {sortDirection === "asc" ? (
+                                  <ChevronUp className="h-4 w-4" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4" />
+                                )}
+                              </span>
+                            )}
+                          </div>
+                        </TableHead>
+                        <TableHead className="w-[100px] cursor-pointer" onClick={() => handleSort("type")}>
+                          <div className="flex items-center">
+                            Type
+                            {sortField === "type" && (
+                              <span className="ml-1">
+                                {sortDirection === "asc" ? (
+                                  <ChevronUp className="h-4 w-4" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4" />
+                                )}
+                              </span>
+                            )}
+                          </div>
+                        </TableHead>
+                        <TableHead className="cursor-pointer" onClick={() => handleSort("title")}>
+                          <div className="flex items-center">
+                            Activity
+                            {sortField === "title" && (
+                              <span className="ml-1">
+                                {sortDirection === "asc" ? (
+                                  <ChevronUp className="h-4 w-4" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4" />
+                                )}
+                              </span>
+                            )}
+                          </div>
+                        </TableHead>
+                        <TableHead className="w-[120px] cursor-pointer" onClick={() => handleSort("user")}>
+                          <div className="flex items-center">
+                            User
+                            {sortField === "user" && (
+                              <span className="ml-1">
+                                {sortDirection === "asc" ? (
+                                  <ChevronUp className="h-4 w-4" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4" />
+                                )}
+                              </span>
+                            )}
+                          </div>
+                        </TableHead>
+                        <TableHead className="w-[150px]">From/To</TableHead>
+                        <TableHead className="w-[80px] text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredLogEntries.length > 0 ? (
+                        filteredLogEntries.map((entry) => (
+                          <TableRow key={entry.id} className="hover:bg-gray-50">
+                            <TableCell className="p-2">
+                              <Checkbox
+                                checked={selectedEntries.includes(entry.id)}
+                                onCheckedChange={() => toggleEntrySelection(entry.id)}
+                                aria-label={`Select ${entry.title}`}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            </TableCell>
+                            <TableCell className="font-medium p-2" onClick={() => setSelectedLogEntry(entry)}>
+                              <div>{entry.date}</div>
+                              <div className="text-xs text-gray-500">{entry.time}</div>
+                            </TableCell>
+                            <TableCell className="p-2" onClick={() => setSelectedLogEntry(entry)}>
+                              <div className="flex items-center space-x-2">
+                                <div
+                                  className={`h-6 w-6 rounded-full ${getActivityColor(entry.type)} flex items-center justify-center`}
+                                >
+                                  {getLogEntryIcon(entry.type)}
+                                </div>
+                                <span className="text-xs capitalize">{entry.type}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="p-2" onClick={() => setSelectedLogEntry(entry)}>
+                              <div className="font-medium">{entry.title}</div>
+                              {entry.type === "email" && entry.data.hasAttachments && (
+                                <div className="flex items-center text-xs text-gray-500 mt-1">
+                                  <Paperclip className="h-3 w-3 mr-1" />
+                                  <span>Attachments</span>
+                                </div>
+                              )}
+                            </TableCell>
+                            <TableCell className="p-2" onClick={() => setSelectedLogEntry(entry)}>
+                              {entry.user}
+                            </TableCell>
+                            <TableCell className="p-2" onClick={() => setSelectedLogEntry(entry)}>
+                              {entry.type === "email" && (
+                                <div className="text-xs">
+                                  <div>From: {entry.data.from?.split("@")[0]}</div>
+                                  <div>To: {entry.data.to?.split("@")[0]}</div>
+                                </div>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right p-2">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => setSelectedLogEntry(entry)}>
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    View
+                                  </DropdownMenuItem>
+                                  {entry.type === "document" && (
+                                    <DropdownMenuItem>
+                                      <Download className="h-4 w-4 mr-2" />
+                                      Download
+                                    </DropdownMenuItem>
+                                  )}
+                                  {(entry.type === "note" || entry.type === "document") && (
+                                    <DropdownMenuItem>
+                                      <Edit className="h-4 w-4 mr-2" />
+                                      Edit
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                            <FileText className="h-12 w-12 mx-auto text-gray-300 mb-2" />
+                            <h3 className="text-lg font-medium">No entries found</h3>
+                            <p className="text-sm">Try adjusting your filter</p>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {selectedEntries.length > 0 && (
+                  <div className="mt-4 flex items-center justify-between bg-gray-50 p-2 rounded-md">
+                    <span className="text-sm font-medium">{selectedEntries.length} items selected</span>
+                    <div className="flex space-x-2">
+                      <Button variant="outline" size="sm">
+                        <Tag className="h-4 w-4 mr-2" /> Tag
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <Download className="h-4 w-4 mr-2" /> Export
+                      </Button>
+                      <Button variant="outline" size="sm" className="text-red-500 hover:text-red-600">
+                        <Trash2 className="h-4 w-4 mr-2" /> Delete
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => setSelectedEntries([])}>
+                        Clear
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="overview" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Upcoming Meetings</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {matter.hearings.slice(0, 5).map((hearing) => (
-                    <div key={hearing.id} className="flex items-start space-x-3 p-3 bg-white border rounded-lg">
-                      <div className="bg-gray-100 p-2 rounded-md">
-                        <Calendar className="h-5 w-5 text-gray-600" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-medium">{hearing.title}</h4>
-                          <Button variant="ghost" size="sm">
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                        </div>
-                        <p className="text-sm text-gray-500">
-                          {hearing.date} at {hearing.time}
-                        </p>
-                        <p className="text-sm text-gray-500">{hearing.location}</p>
-                      </div>
-                    </div>
-                  ))}
-                  {matter.hearings.length > 5 && (
-                    <div className="pt-2 text-center">
-                      <Button variant="outline" size="sm">
-                        View More
-                      </Button>
-                    </div>
-                  )}
-                  <div className="pt-2">
-                    <Button variant="outline" size="sm">
-                      <Plus className="h-3 w-3 mr-1" /> Add Meeting
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Emails</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {matter.emails.slice(0, 5).map((email) => (
-                    <div
-                      key={email.id}
-                      className="flex items-start space-x-3 p-3 bg-white border rounded-lg cursor-pointer hover:border-gray-300"
-                      onClick={() => {
-                        setSelectedEmail(email)
-                      }}
-                    >
-                      <div className="bg-gray-100 p-2 rounded-md">
-                        <Mail className="h-5 w-5 text-gray-600" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-medium">{email.subject}</h4>
-                          {email.hasAttachments && (
-                            <Badge variant="outline" className="flex items-center">
-                              <Paperclip className="h-3 w-3 mr-1" />
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-500">
-                          {email.from.includes("lawmanage") ? "To: " : "From: "}
-                          {email.from.includes("lawmanage") ? email.to : email.from}
-                        </p>
-                        <p className="text-sm text-gray-500 truncate">{email.preview}</p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          {email.date} at {email.time}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                  {matter.emails.length > 5 && (
-                    <div className="pt-2 text-center">
-                      <Button variant="outline" size="sm">
-                        View More
-                      </Button>
-                    </div>
-                  )}
-                  <div className="pt-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setEmailMode("new")
-                        setComposeEmail(true)
-                      }}
-                    >
-                      <Plus className="h-3 w-3 mr-1" /> Compose Email
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </TabsContent>
 
         <TabsContent value="documents" className="mt-6">
@@ -1453,103 +2514,39 @@ export default function MatterDetailPage({ params }: { params: { id: string } })
           </Card>
         </TabsContent>
 
-        {/* Other tabs remain the same */}
         <TabsContent value="hearings" className="mt-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Court Hearings</CardTitle>
               <Button>
-                <Plus className="h-4 w-4 mr-2" /> Add Hearing
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div className="flex items-center space-x-4">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-                    <Input placeholder="Search hearings..." className="pl-8" />
-                  </div>
-                  <Select defaultValue="all">
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Hearing Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      <SelectItem value="initial">Initial Hearings</SelectItem>
-                      <SelectItem value="mediation">Mediation</SelectItem>
-                      <SelectItem value="trial">Trial</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-4">
-                  {matter.hearings.map((hearing) => (
-                    <div key={hearing.id} className="border rounded-lg p-4">
-                      <div className="flex justify-between items-start">
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-medium text-lg">{hearing.title}</h3>
-                            <Badge variant="outline">Upcoming</Badge>
-                          </div>
-                          <div className="flex items-center gap-4 text-sm">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="h-4 w-4 text-gray-500" />
-                              <span>{hearing.date}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Clock className="h-4 w-4 text-gray-500" />
-                              <span>{hearing.time}</span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1 text-sm">
-                            <MapPin className="h-4 w-4 text-gray-500" />
-                            <span>{hearing.location}</span>
-                          </div>
-                          <div className="flex items-center gap-1 text-sm">
-                            <Users className="h-4 w-4 text-gray-500" />
-                            <span>Judge: {hearing.judge}</span>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="sm">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="children" className="mt-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Children</CardTitle>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" /> Add Child
+                <Plus className="h-4 w-4 mr-1" /> Add Hearing
               </Button>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {matter.children.map((child) => (
-                  <div key={child.id} className="border rounded-lg p-4">
+                {matter.hearings.map((hearing) => (
+                  <div key={hearing.id} className="border rounded-lg p-4">
                     <div className="flex justify-between items-start">
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-medium text-lg">{child.name}</h3>
-                          <Badge variant="outline">{child.age} years old</Badge>
+                          <h3 className="font-medium text-lg">{hearing.title}</h3>
+                          <Badge variant="outline">{hearing.date}</Badge>
                         </div>
-                        <div className="flex items-center gap-4 text-sm">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
                           <div className="flex items-center gap-1">
-                            <Users className="h-4 w-4 text-gray-500" />
-                            <span>Living with: {child.livingWith}</span>
+                            <Clock className="h-4 w-4 text-gray-500" />
+                            <span>{hearing.time}</span>
                           </div>
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-4 w-4 text-gray-500" />
+                            <span>{hearing.location}</span>
+                          </div>
+                          {hearing.judge && (
+                            <div className="flex items-center gap-1">
+                              <Users className="h-4 w-4 text-gray-500" />
+                              <span>Judge: {hearing.judge}</span>
+                            </div>
+                          )}
                         </div>
                         <div className="mt-2">
                           <Button variant="outline" size="sm">
@@ -1574,238 +2571,205 @@ export default function MatterDetailPage({ params }: { params: { id: string } })
         </TabsContent>
 
         <TabsContent value="property" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Real Estate Section */}
-            <div className="bg-white rounded-lg border p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold">Real Estate</h2>
-                <Button variant="outline" className="gap-2">
-                  <Plus size={16} /> Add Property
-                </Button>
-              </div>
+          <PropertyFinancialTab />
+        </TabsContent>
 
-              {/* Real Estate Items */}
-              <div className="space-y-4">
-                <div className="bg-white rounded-lg border p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-gray-100 p-3 rounded-lg">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="text-gray-600"
-                      >
-                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-lg">Family Home</h3>
-                      <p className="text-gray-500">Joint ownership</p>
-                    </div>
-                  </div>
-                  <div className="text-xl font-bold">$750,000</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Other Assets Section */}
-            <div className="bg-white rounded-lg border p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold">Other Assets</h2>
-                <Button variant="outline" className="gap-2">
-                  <Plus size={16} /> Add Asset
-                </Button>
-              </div>
-
-              {/* Other Assets Items */}
-              <div className="space-y-4">
-                <div className="bg-white rounded-lg border p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-gray-100 p-3 rounded-lg">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="text-gray-600"
-                      >
-                        <path d="M7 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"></path>
-                        <path d="M17 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"></path>
-                        <path d="M5 17h-2v-6l2 -5h9l4 5h1a2 2 0 0 1 2 2v4h-2m-4 0h-6"></path>
-                        <path d="M9 17l0 -3l6 0l0 3"></path>
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-lg">2020 SUV</h3>
-                      <p className="text-gray-500">Vehicle • Owned by husband</p>
-                    </div>
-                  </div>
-                  <div className="text-xl font-bold">$35,000</div>
-                </div>
-
-                <div className="bg-white rounded-lg border p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-gray-100 p-3 rounded-lg">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="text-gray-600"
-                      >
-                        <path d="M12 2v20m-9 -10h18"></path>
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-lg">Joint Savings</h3>
-                      <p className="text-gray-500">Bank Account • To be divided equally</p>
-                    </div>
-                  </div>
-                  <div className="text-xl font-bold">$125,000</div>
-                </div>
-
-                <div className="bg-white rounded-lg border p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-gray-100 p-3 rounded-lg">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="text-gray-600"
-                      >
-                        <path d="M12 2v20m-9 -10h18"></path>
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-lg">Super Account</h3>
-                      <p className="text-gray-500">Super • Husband's retirement account</p>
-                    </div>
-                  </div>
-                  <div className="text-xl font-bold">$250,000</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Liabilities Section */}
-            <div className="bg-white rounded-lg border p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold">Liabilities</h2>
-                <Button variant="outline" className="gap-2">
-                  <Plus size={16} /> Add Liability
-                </Button>
-              </div>
-
-              {/* Liabilities Items */}
-              <div className="space-y-4">
-                <div className="bg-white rounded-lg border p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-gray-100 p-3 rounded-lg">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="text-gray-600"
-                      >
-                        <path d="M12 2v20m-9 -10h18"></path>
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-lg">Family Home</h3>
-                      <p className="text-gray-500">Mortgage • Joint liability</p>
-                    </div>
-                  </div>
-                  <div className="text-xl font-bold">$350,000</div>
-                </div>
-
-                <div className="bg-white rounded-lg border p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-gray-100 p-3 rounded-lg">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="text-gray-600"
-                      >
-                        <path d="M12 2v20m-9 -10h18"></path>
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-lg">Joint Credit Card</h3>
-                      <p className="text-gray-500">Credit Card • To be divided equally</p>
-                    </div>
-                  </div>
-                  <div className="text-xl font-bold">$15,000</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Financial Summary Section */}
-            <div className="bg-white rounded-lg border p-6">
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold">Financial Summary</h2>
-              </div>
-
-              <div className="bg-gray-50 p-6 rounded-lg">
+        <TabsContent value="relationship" className="mt-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Relationship Details</CardTitle>
+              <Button variant="outline">
+                <Edit className="h-4 w-4 mr-2" /> Edit Details
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-medium">Total Assets:</h3>
-                    <span className="text-xl font-bold">$1,160,000</span>
+                  <h3 className="text-lg font-medium">Cohabitation</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Date:</p>
+                      <p>{matter.relationshipDetails?.cohabitationDate || "Not specified"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Month/Year:</p>
+                      <p>
+                        {matter.relationshipDetails?.cohabitationMonth
+                          ? `${matter.relationshipDetails?.cohabitationMonth}/${matter.relationshipDetails?.cohabitationYear}`
+                          : "Not specified"}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-medium">Total Liabilities:</h3>
-                    <span className="text-xl font-bold">$365,000</span>
-                  </div>
-                  <div className="border-t pt-4 mt-4">
-                    <div className="flex justify-between items-center">
-                      <h3 className="text-lg font-medium">Net Worth:</h3>
-                      <span className="text-xl font-bold">$795,000</span>
+
+                  <h3 className="text-lg font-medium pt-4">Marriage</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Date:</p>
+                      <p>{matter.relationshipDetails?.marriageDate || "Not specified"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Location:</p>
+                      <p>
+                        {matter.relationshipDetails?.marriageTown && matter.relationshipDetails?.marriageCountry
+                          ? `${matter.relationshipDetails?.marriageTown}, ${matter.relationshipDetails?.marriageCountry}`
+                          : "Not specified"}
+                      </p>
                     </div>
                   </div>
                 </div>
+
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Separation</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Date:</p>
+                      <p>{matter.relationshipDetails?.separationDate || "Not specified"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Month/Year:</p>
+                      <p>
+                        {matter.relationshipDetails?.separationMonth
+                          ? `${matter.relationshipDetails?.separationMonth}/${matter.relationshipDetails?.separationYear}`
+                          : "Not specified"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <h3 className="text-lg font-medium pt-4">Divorce</h3>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Date:</p>
+                    <p>{matter.relationshipDetails?.divorceDate || "Not specified"}</p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+
+              <div className="mt-8 border-t pt-6">
+                <h3 className="text-lg font-medium mb-4">Child Support</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Reference Number:</p>
+                    <p>{matter.childSupport?.referenceNumber || "Not specified"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Binding Agreement Date:</p>
+                    <p>{matter.childSupport?.bindingAgreementDate || "Not specified"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Binding Agreement Date:</p>
+                    <p>{matter.childSupport?.bindingAgreementDate || "Not specified"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Limited Agreement Date:</p>
+                    <p>{matter.childSupport?.limitedAgreementDate || "Not specified"}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 border-t pt-6">
+                <h3 className="text-lg font-medium mb-4">Spousal Maintenance</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Agreed:</p>
+                    <p>{matter.spousalMaintenance?.agreed ? "Yes" : "No"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Agreement Date:</p>
+                    <p>{matter.spousalMaintenance?.dateOfAgreement || "Not specified"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Amount:</p>
+                    <p>
+                      {matter.spousalMaintenance?.amount
+                        ? `$${matter.spousalMaintenance?.amount} ${matter.spousalMaintenance?.period || "per period"}`
+                        : "Not specified"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Non-periodic Payments:</p>
+                    <p>{matter.spousalMaintenance?.nonPeriodicPayments || "Not specified"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Letter of No Objection:</p>
+                    <p>
+                      {matter.spousalMaintenance?.letterOfNoObjection?.received
+                        ? `Yes - ${matter.spousalMaintenance?.letterOfNoObjection?.date}`
+                        : "No"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="children" className="mt-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Children</CardTitle>
+              <Button>
+                <Plus className="h-4 w-4 mr-1" /> Add Child
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {matter.children.map((child) => (
+                  <div key={child.id} className="border rounded-lg p-4">
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium text-lg">{child.name}</h3>
+                          <Badge variant="outline">{child.age} years old</Badge>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                          <div className="flex items-center gap-1">
+                            <Users className="h-4 w-4 text-gray-500" />
+                            <span>Living with: {child.livingWith}</span>
+                          </div>
+                          {child.primaryCareGiver && (
+                            <div className="flex items-center gap-1">
+                              <Users className="h-4 w-4 text-gray-500" />
+                              <span>Primary Care Giver: {child.primaryCareGiver}</span>
+                            </div>
+                          )}
+                          {child.school && (
+                            <div className="flex items-center gap-1">
+                              <FileText className="h-4 w-4 text-gray-500" />
+                              <span>School: {child.school}</span>
+                            </div>
+                          )}
+                          {child.grade && (
+                            <div className="flex items-center gap-1">
+                              <FileText className="h-4 w-4 text-gray-500" />
+                              <span>Grade: {child.grade}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="mt-2">
+                          <Button variant="outline" size="sm">
+                            View Details
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="sm">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="notes" className="mt-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Case Notes</CardTitle>
+              <CardTitle>Notes</CardTitle>
               <Button>
                 <Plus className="h-4 w-4 mr-2" /> Add Note
               </Button>
@@ -1817,12 +2781,26 @@ export default function MatterDetailPage({ params }: { params: { id: string } })
                     <div className="flex justify-between items-start">
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-medium">{note.author}</h3>
-                          <span className="text-sm text-gray-500">
-                            {note.date} at {note.time}
-                          </span>
+                          <h3 className="font-medium text-lg">
+                            {note.content.substring(0, 50)}
+                            {note.content.length > 50 ? "..." : ""}
+                          </h3>
                         </div>
-                        <p className="text-sm">{note.content}</p>
+                        <div className="flex items-center gap-4 text-sm">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4 text-gray-500" />
+                            <span>{note.date}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-4 w-4 text-gray-500" />
+                            <span>{note.time}</span>
+                          </div>
+                        </div>
+                        <div className="mt-2">
+                          <Button variant="outline" size="sm">
+                            View Details
+                          </Button>
+                        </div>
                       </div>
                       <div className="flex gap-2">
                         <Button variant="ghost" size="sm">
@@ -1840,158 +2818,15 @@ export default function MatterDetailPage({ params }: { params: { id: string } })
           </Card>
         </TabsContent>
       </Tabs>
-
-      {/* Email Detail Dialog */}
-      {selectedEmail && (
-        <Dialog open={!!selectedEmail} onOpenChange={() => setSelectedEmail(null)}>
-          <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{selectedEmail.subject}</DialogTitle>
-            </DialogHeader>
-
-            <div className="space-y-4 py-4">
-              <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-                <div className="font-medium text-gray-500">From:</div>
-                <div>{selectedEmail.from}</div>
-
-                <div className="font-medium text-gray-500">To:</div>
-                <div>{selectedEmail.to}</div>
-
-                <div className="font-medium text-gray-500">Date:</div>
-                <div>
-                  {selectedEmail.date} at {selectedEmail.time}
-                </div>
-              </div>
-
-              <div className="border-t border-b py-4 my-2">
-                <div className="prose prose-sm max-w-none">
-                  {selectedEmail.content ? (
-                    <div dangerouslySetInnerHTML={{ __html: selectedEmail.content }} />
-                  ) : (
-                    <p>{selectedEmail.preview}</p>
-                  )}
-                </div>
-              </div>
-
-              {selectedEmail.hasAttachments && selectedEmail.attachments && selectedEmail.attachments.length > 0 && (
-                <>
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">Attachments ({selectedEmail.attachments.length})</h4>
-                    <div className="space-y-2">
-                      {selectedEmail.attachments.map((attachment) => (
-                        <div
-                          key={attachment.id}
-                          className="flex items-center justify-between p-2 border rounded-md hover:bg-gray-50"
-                        >
-                          <div className="flex items-center space-x-2">
-                            <FileText className="h-4 w-4 text-gray-400" />
-                            <span>{attachment.name}</span>
-                            <Badge variant="outline" className="text-xs">
-                              {attachment.type}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <span className="text-xs text-gray-500">{attachment.size}</span>
-                            <Button variant="ghost" size="sm">
-                              <Download className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {selectedEmail.relatedDocumentId && (
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Related Document</h4>
-                  <div className="space-y-2">
-                    {(() => {
-                      const relatedDoc = matter.documents.find((doc) => doc.id === selectedEmail.relatedDocumentId)
-                      return relatedDoc ? (
-                        <div
-                          className="flex items-center justify-between p-2 border rounded-md hover:bg-gray-50 cursor-pointer"
-                          onClick={() => {
-                            setSelectedEmail(null)
-                            setSelectedDocument(relatedDoc)
-                          }}
-                        >
-                          <div className="flex items-center space-x-2">
-                            <FileText className="h-4 w-4 text-gray-400" />
-                            <div>
-                              <span className="text-sm font-medium">{relatedDoc.name}</span>
-                              <div className="text-xs text-gray-500">
-                                {relatedDoc.type} • {relatedDoc.date}
-                              </div>
-                            </div>
-                          </div>
-                          <Badge variant={relatedDoc.status === "Filed" ? "default" : "outline"}>
-                            {relatedDoc.status}
-                          </Badge>
-                        </div>
-                      ) : null
-                    })()}
-                  </div>
-                </div>
-              )}
-
-              <div className="flex justify-between items-center pt-2">
-                <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setEmailMode("reply")
-                      setComposeEmail(true)
-                    }}
-                  >
-                    <Mail className="h-4 w-4 mr-1" /> Reply
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setEmailMode("replyAll")
-                      setComposeEmail(true)
-                    }}
-                  >
-                    <Mail className="h-4 w-4 mr-1" /> Reply All
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setEmailMode("forward")
-                      setComposeEmail(true)
-                    }}
-                  >
-                    <Mail className="h-4 w-4 mr-1" /> Forward
-                  </Button>
-                </div>
-                <Button variant="outline" size="sm">
-                  <Download className="h-4 w-4 mr-1" /> Download
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* Email Compose Dialog */}
-      {composeEmail && (
-        <EmailComposeDialog
-          isOpen={composeEmail}
-          onClose={() => setComposeEmail(false)}
-          matterId={matter.id}
-          mode={emailMode}
-          originalEmail={selectedEmail || undefined}
-          documents={matter.documents}
-        />
-      )}
+      {/* Request Detail Email Dialog */}
+      <RequestDetailEmailDialog
+        isOpen={showDetailRequestDialog}
+        onClose={() => setShowDetailRequestDialog(false)}
+        onSend={handleDetailRequestSent}
+        clientEmail={matter.client.email}
+        matterReference={matter.reference}
+        clientName={matter.client.name}
+      />
     </div>
   )
 }

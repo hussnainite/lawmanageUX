@@ -262,7 +262,7 @@ export default function UserPermissionsPage({ params }: { params: { id: string }
 
                       <div className="p-4 grid grid-cols-3 gap-4 items-center">
                         <div>
-                          <p className="font-medium">Counterparty Portal</p>
+                          <p className="font-medium">Other Side Portal</p>
                           <p className="text-sm text-muted-foreground">Access to external portal management</p>
                         </div>
                         <div className="flex items-center space-x-2">

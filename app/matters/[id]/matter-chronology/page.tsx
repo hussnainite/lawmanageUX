@@ -17,18 +17,32 @@ import {
   RefreshCw,
   Briefcase,
   Edit,
+  Filter,
+  Search,
+  ChevronDown,
+  ChevronUp,
+  Tag,
+  Trash2,
 } from "lucide-react"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useState } from "react"
+import { Input } from "@/components/ui/input"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Checkbox } from "@/components/ui/checkbox"
 
 export default function MatterChronologyPage({ params }: { params: { id: string } }) {
   const matterId = Number.parseInt(params.id)
   const [selectedEntry, setSelectedEntry] = useState<any | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [filterType, setFilterType] = useState("all")
+  const [showFilters, setShowFilters] = useState(false)
+  const [sortField, setSortField] = useState("date")
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
+  const [selectedEntries, setSelectedEntries] = useState<number[]>([])
 
   // This would normally be fetched from an API
   const logEntries = [
@@ -222,30 +236,80 @@ export default function MatterChronologyPage({ params }: { params: { id: string 
     const matchesSearch =
       searchQuery === "" ||
       entry.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      entry.description.toLowerCase().includes(searchQuery.toLowerCase())
+      entry.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      entry.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (entry.from && entry.from.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (entry.to && entry.to.toLowerCase().includes(searchQuery.toLowerCase()))
 
     return matchesType && matchesSearch
   })
+
+  // Sort entries
+  const sortedEntries = [...filteredEntries].sort((a, b) => {
+    let aValue, bValue
+
+    // Determine values to compare based on sort field
+    switch (sortField) {
+      case "date":
+        aValue = new Date(`${a.date} ${a.time}`).getTime()
+        bValue = new Date(`${b.date} ${b.time}`).getTime()
+        break
+      case "type":
+        aValue = a.type
+        bValue = b.type
+        break
+      case "title":
+        aValue = a.title
+        bValue = b.title
+        break
+      case "user":
+        aValue = a.user
+        bValue = b.user
+        break
+      default:
+        aValue = new Date(`${a.date} ${a.time}`).getTime()
+        bValue = new Date(`${b.date} ${b.time}`).getTime()
+    }
+
+    // Apply sort direction
+    if (sortDirection === "asc") {
+      return aValue > bValue ? 1 : -1
+    } else {
+      return aValue < bValue ? 1 : -1
+    }
+  })
+
+  // Function to handle sort
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      // Toggle direction if same field
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
+    } else {
+      // Set new field and default to descending
+      setSortField(field)
+      setSortDirection("desc")
+    }
+  }
 
   // Function to get the appropriate icon for each entry type
   const getEntryIcon = (type: string) => {
     switch (type) {
       case "document":
-        return <FileText className="h-5 w-5" />
+        return <FileText className="h-4 w-4" />
       case "email":
-        return <Mail className="h-5 w-5" />
+        return <Mail className="h-4 w-4" />
       case "note":
-        return <PenTool className="h-5 w-5" />
+        return <PenTool className="h-4 w-4" />
       case "call":
-        return <MessageSquare className="h-5 w-5" />
+        return <MessageSquare className="h-4 w-4" />
       case "hearing":
-        return <Calendar className="h-5 w-5" />
+        return <Calendar className="h-4 w-4" />
       case "status":
-        return <RefreshCw className="h-5 w-5" />
+        return <RefreshCw className="h-4 w-4" />
       case "matter":
-        return <Briefcase className="h-5 w-5" />
+        return <Briefcase className="h-4 w-4" />
       default:
-        return <Clock className="h-5 w-5" />
+        return <Clock className="h-4 w-4" />
     }
   }
 
@@ -271,17 +335,19 @@ export default function MatterChronologyPage({ params }: { params: { id: string 
     }
   }
 
-  // Group entries by date for better organization
-  const entriesByDate = filteredEntries.reduce(
-    (groups, entry) => {
-      if (!groups[entry.date]) {
-        groups[entry.date] = []
-      }
-      groups[entry.date].push(entry)
-      return groups
-    },
-    {} as Record<string, typeof logEntries>,
-  )
+  // Handle checkbox selection
+  const toggleEntrySelection = (id: number) => {
+    setSelectedEntries((prev) => (prev.includes(id) ? prev.filter((entryId) => entryId !== id) : [...prev, id]))
+  }
+
+  // Handle select all
+  const toggleSelectAll = () => {
+    if (selectedEntries.length === sortedEntries.length) {
+      setSelectedEntries([])
+    } else {
+      setSelectedEntries(sortedEntries.map((entry) => entry.id))
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -301,8 +367,20 @@ export default function MatterChronologyPage({ params }: { params: { id: string 
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Matter Chronology</CardTitle>
           <div className="flex items-center space-x-2">
-            <Select defaultValue="all" onValueChange={setFilterType}>
-              <SelectTrigger className="w-[180px]">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search..."
+                className="pl-8 w-[200px]"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <Button variant="outline" size="icon" onClick={() => setShowFilters(!showFilters)}>
+              <Filter className="h-4 w-4" />
+            </Button>
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger className="w-[150px]">
                 <SelectValue placeholder="All Activities" />
               </SelectTrigger>
               <SelectContent>
@@ -316,91 +394,228 @@ export default function MatterChronologyPage({ params }: { params: { id: string 
               </SelectContent>
             </Select>
             <Button variant="outline">
-              <Download className="h-4 w-4 mr-2" /> Export Log
+              <Download className="h-4 w-4 mr-2" /> Export
             </Button>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-6">
-            {Object.keys(entriesByDate).length > 0 ? (
-              Object.keys(entriesByDate)
-                .sort((a, b) => new Date(b).getTime() - new Date(a).getTime()) // Sort dates newest first
-                .map((date) => (
-                  <div key={date} className="space-y-4">
-                    <h3 className="text-sm font-medium text-gray-700 sticky top-0 bg-white py-1 border-b">{date}</h3>
-                    <div className="relative">
-                      <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gray-200"></div>
-                      <div className="space-y-4">
-                        {entriesByDate[date].map((entry) => (
-                          <div key={entry.id} className="relative pl-14">
-                            <div
-                              className={`absolute left-0 top-0 h-10 w-10 rounded-full ${getEntryColor(entry.type)} flex items-center justify-center z-10`}
-                            >
-                              {getEntryIcon(entry.type)}
-                            </div>
-                            <div
-                              className="bg-white border rounded-lg p-4 cursor-pointer hover:border-gray-300"
-                              onClick={() => setSelectedEntry(entry)}
-                            >
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center">
-                                  <span className="font-medium">{entry.title}</span>
-                                  <span className="text-xs text-gray-500 ml-2">{entry.time}</span>
-                                </div>
-                                <div className="flex items-center space-x-1">
-                                  {entry.type === "document" && (
-                                    <>
-                                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                                        <Download className="h-4 w-4" />
-                                      </Button>
-                                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                                        <Edit className="h-4 w-4" />
-                                      </Button>
-                                    </>
-                                  )}
-                                  {entry.type === "email" && (
-                                    <>
-                                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                                        <Eye className="h-4 w-4" />
-                                      </Button>
-                                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                                        <Paperclip className="h-4 w-4" />
-                                      </Button>
-                                    </>
-                                  )}
-                                  {entry.type === "note" && (
-                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
-                                  )}
-                                </div>
-                              </div>
-                              <p className="text-sm text-gray-700">{entry.description}</p>
-
-                              {/* Show attachments for emails */}
-                              {entry.type === "email" && entry.hasAttachments && (
-                                <div className="mt-2 pt-1">
-                                  <div className="flex items-center text-xs text-gray-500">
-                                    <Paperclip className="h-3 w-3 mr-1" />
-                                    <span>Has attachments</span>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ))
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                <FileText className="h-12 w-12 mx-auto text-gray-300 mb-2" />
-                <h3 className="text-lg font-medium">No entries found</h3>
-                <p className="text-sm">Try adjusting your filter</p>
+          {showFilters && (
+            <div className="mb-4 p-4 border rounded-md bg-gray-50">
+              <div className="flex flex-wrap gap-4">
+                <div className="w-[200px]">
+                  <label className="text-sm font-medium mb-1 block">Date Range</label>
+                  <Select defaultValue="all-time">
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Time" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all-time">All Time</SelectItem>
+                      <SelectItem value="last-week">Last Week</SelectItem>
+                      <SelectItem value="last-month">Last Month</SelectItem>
+                      <SelectItem value="last-3-months">Last 3 Months</SelectItem>
+                      <SelectItem value="last-6-months">Last 6 Months</SelectItem>
+                      <SelectItem value="last-year">Last Year</SelectItem>
+                      <SelectItem value="custom">Custom Range</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="w-[200px]">
+                  <label className="text-sm font-medium mb-1 block">User</label>
+                  <Select defaultValue="all-users">
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Users" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all-users">All Users</SelectItem>
+                      <SelectItem value="sarah-johnson">Sarah Johnson</SelectItem>
+                      <SelectItem value="john-smith">John Smith</SelectItem>
+                      <SelectItem value="opposing-counsel">Opposing Counsel</SelectItem>
+                      <SelectItem value="system">System</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            )}
+            </div>
+          )}
+
+          <div className="border rounded-md">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[40px]">
+                    <Checkbox
+                      checked={selectedEntries.length === sortedEntries.length && sortedEntries.length > 0}
+                      onCheckedChange={toggleSelectAll}
+                      aria-label="Select all"
+                    />
+                  </TableHead>
+                  <TableHead className="w-[150px] cursor-pointer" onClick={() => handleSort("date")}>
+                    <div className="flex items-center">
+                      Date
+                      {sortField === "date" && (
+                        <span className="ml-1">
+                          {sortDirection === "asc" ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  </TableHead>
+                  <TableHead className="w-[100px] cursor-pointer" onClick={() => handleSort("type")}>
+                    <div className="flex items-center">
+                      Type
+                      {sortField === "type" && (
+                        <span className="ml-1">
+                          {sortDirection === "asc" ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  </TableHead>
+                  <TableHead className="cursor-pointer" onClick={() => handleSort("title")}>
+                    <div className="flex items-center">
+                      Activity
+                      {sortField === "title" && (
+                        <span className="ml-1">
+                          {sortDirection === "asc" ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  </TableHead>
+                  <TableHead className="w-[120px] cursor-pointer" onClick={() => handleSort("user")}>
+                    <div className="flex items-center">
+                      User
+                      {sortField === "user" && (
+                        <span className="ml-1">
+                          {sortDirection === "asc" ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  </TableHead>
+                  <TableHead className="w-[150px]">From/To</TableHead>
+                  <TableHead className="w-[80px] text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sortedEntries.length > 0 ? (
+                  sortedEntries.map((entry) => (
+                    <TableRow key={entry.id} className="hover:bg-gray-50">
+                      <TableCell className="p-2">
+                        <Checkbox
+                          checked={selectedEntries.includes(entry.id)}
+                          onCheckedChange={() => toggleEntrySelection(entry.id)}
+                          aria-label={`Select ${entry.title}`}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </TableCell>
+                      <TableCell className="font-medium p-2" onClick={() => setSelectedEntry(entry)}>
+                        <div>{entry.date}</div>
+                        <div className="text-xs text-gray-500">{entry.time}</div>
+                      </TableCell>
+                      <TableCell className="p-2" onClick={() => setSelectedEntry(entry)}>
+                        <div className="flex items-center space-x-2">
+                          <div
+                            className={`h-6 w-6 rounded-full ${getEntryColor(entry.type)} flex items-center justify-center`}
+                          >
+                            {getEntryIcon(entry.type)}
+                          </div>
+                          <span className="text-xs capitalize">{entry.type}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="p-2" onClick={() => setSelectedEntry(entry)}>
+                        <div className="font-medium">{entry.title}</div>
+                        {entry.hasAttachments && (
+                          <div className="flex items-center text-xs text-gray-500 mt-1">
+                            <Paperclip className="h-3 w-3 mr-1" />
+                            <span>Attachments</span>
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="p-2" onClick={() => setSelectedEntry(entry)}>
+                        {entry.user}
+                      </TableCell>
+                      <TableCell className="p-2" onClick={() => setSelectedEntry(entry)}>
+                        {entry.type === "email" && (
+                          <div className="text-xs">
+                            <div>From: {entry.from?.split("@")[0]}</div>
+                            <div>To: {entry.to?.split("@")[0]}</div>
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right p-2">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setSelectedEntry(entry)}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              View
+                            </DropdownMenuItem>
+                            {entry.type === "document" && (
+                              <DropdownMenuItem>
+                                <Download className="h-4 w-4 mr-2" />
+                                Download
+                              </DropdownMenuItem>
+                            )}
+                            {(entry.type === "note" || entry.type === "document") && (
+                              <DropdownMenuItem>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                      <FileText className="h-12 w-12 mx-auto text-gray-300 mb-2" />
+                      <h3 className="text-lg font-medium">No entries found</h3>
+                      <p className="text-sm">Try adjusting your filter</p>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </div>
+
+          {selectedEntries.length > 0 && (
+            <div className="mt-4 flex items-center justify-between bg-gray-50 p-2 rounded-md">
+              <span className="text-sm font-medium">{selectedEntries.length} items selected</span>
+              <div className="flex space-x-2">
+                <Button variant="outline" size="sm">
+                  <Tag className="h-4 w-4 mr-2" /> Tag
+                </Button>
+                <Button variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-2" /> Export
+                </Button>
+                <Button variant="outline" size="sm" className="text-red-500 hover:text-red-600">
+                  <Trash2 className="h-4 w-4 mr-2" /> Delete
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setSelectedEntries([])}>
+                  Clear
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

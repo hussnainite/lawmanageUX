@@ -29,7 +29,7 @@ export default function ContactsPage() {
           <SelectContent>
             <SelectItem value="all">All Types</SelectItem>
             <SelectItem value="client">Clients</SelectItem>
-            <SelectItem value="opposing">Other Party</SelectItem>
+            <SelectItem value="other-side">Other Side</SelectItem>
             <SelectItem value="witness">Witnesses</SelectItem>
             <SelectItem value="expert">Expert Witnesses</SelectItem>
             <SelectItem value="other">Other Contacts</SelectItem>
@@ -62,7 +62,7 @@ export default function ContactsPage() {
               {
                 id: 2,
                 name: "Jane Smith",
-                type: "Other Party",
+                type: "Other Side",
                 email: "jane.smith@example.com",
                 phone: "(555) 765-4321",
                 address: "456 Oak Ave, Anytown, USA",
@@ -82,7 +82,7 @@ export default function ContactsPage() {
               {
                 id: 4,
                 name: "Sarah Johnson",
-                type: "Other Party",
+                type: "Other Side",
                 email: "sarah.johnson@example.com",
                 phone: "(555) 345-6789",
                 address: "321 Elm St, Anytown, USA",

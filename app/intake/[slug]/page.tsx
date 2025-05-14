@@ -1538,19 +1538,6 @@ function IntakeFormContent({ params }: { params: { slug: string } }) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="consultation-date">
-                Could you please select a date and time that works best for you for the initial consultation?
-              </Label>
-              <Input
-                id="consultation-date"
-                type="datetime-local"
-                value={formData["consultation-date"] || ""}
-                onChange={(e) => handleInputChange("consultation-date", e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="referral-source">How did you find out about us?</Label>
               <Select
                 value={formData["referral-source"] || ""}

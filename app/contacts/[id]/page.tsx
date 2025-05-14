@@ -26,7 +26,7 @@ export default function ContactDetailPage({ params }: { params: { id: string } }
     title: "Ms",
     givenName: "Jane",
     lastName: "Smith",
-    type: "Opposing Party",
+    type: "Other Side",
     email: "jane.smith@example.com",
     phone: "(555) 765-4321",
     homePhone: "(555) 765-4321",
@@ -46,7 +46,7 @@ export default function ContactDetailPage({ params }: { params: { id: string } }
       state: "NSW",
       postcode: "2000",
     },
-    matters: [{ id: 1, title: "Smith vs. Smith", type: "Children & Property", status: "Open", role: "Opposing Party" }],
+    matters: [{ id: 1, title: "Smith vs. Smith", type: "Children & Property", status: "Open", role: "Other Side" }],
     notes: [
       {
         id: 1,
@@ -58,7 +58,7 @@ export default function ContactDetailPage({ params }: { params: { id: string } }
         id: 2,
         date: "Feb 5, 2023",
         author: "Sarah Johnson",
-        content: "Received financial disclosure documents from opposing counsel.",
+        content: "Received financial disclosure documents from other side's lawyer.",
       },
     ],
     documents: [
@@ -68,7 +68,7 @@ export default function ContactDetailPage({ params }: { params: { id: string } }
     hasAlert: true,
     alertMessage: "Domestic violence flag - Exercise caution with joint meetings",
     tags: ["ESL", "Hard of Hearing"],
-    dPacket: {
+    deedPacket: {
       number: "DP-2023-0042",
       contents: [
         { id: 1, name: "Identification Documents", status: "Received", date: "Jan 10, 2023" },
@@ -301,7 +301,7 @@ export default function ContactDetailPage({ params }: { params: { id: string } }
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-lg">D-Packet Information</CardTitle>
+              <CardTitle className="text-lg">Deed Packet Information</CardTitle>
               <Button variant="outline" size="sm">
                 <Edit className="h-3 w-3 mr-1" /> Edit
               </Button>
@@ -310,15 +310,15 @@ export default function ContactDetailPage({ params }: { params: { id: string } }
               <div className="space-y-4">
                 <div className="flex justify-between items-center p-3 bg-gray-50 rounded-md">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">D-Packet Number</p>
-                    <p className="font-medium">{contact.dPacket.number}</p>
+                    <p className="text-sm font-medium text-gray-500">Deed Packet Number</p>
+                    <p className="font-medium">{contact.deedPacket.number}</p>
                   </div>
                   <Badge variant="outline">Active</Badge>
                 </div>
 
                 <h4 className="text-sm font-medium text-gray-700">Contents</h4>
                 <div className="space-y-2">
-                  {contact.dPacket.contents.map((item) => (
+                  {contact.deedPacket.contents.map((item) => (
                     <div key={item.id} className="flex justify-between items-center p-2 border rounded-md">
                       <div className="flex items-center space-x-2">
                         <FileText className="h-4 w-4 text-gray-400" />

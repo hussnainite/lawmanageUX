@@ -5,11 +5,10 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ArrowLeft, Calendar, Download, User, MessageSquare } from "lucide-react"
+import { ArrowLeft, Calendar, Download, User } from "lucide-react"
 import { DocumentViewer } from "@/components/document-viewer"
-import { DocumentComments } from "@/components/document-comments"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 
 interface Comment {
   id: string
@@ -87,6 +86,51 @@ export default function DocumentPage({ params }: { params: { id: string } }) {
       replies: [],
     },
   ])
+
+  const [clauseAgreements, setClauseAgreements] = useState<{
+    [key: string]: {
+      status: "agree" | "partially-agree" | "disagree"
+      notes?: string
+    }
+  }>({
+    "1.1": { status: "agree" },
+    "1.2": { status: "agree" },
+    "2.1": { status: "agree" },
+    "2.2": { status: "agree" },
+    "3": { status: "agree" },
+  })
+  const [activeClause, setActiveClause] = useState<string | null>(null)
+  const [clauseNote, setClauseNote] = useState("")
+  const [showNoteDialog, setShowNoteDialog] = useState(false)
+
+  const handleAgreementChange = (clause: string, status: "agree" | "partially-agree" | "disagree") => {
+    setClauseAgreements({
+      ...clauseAgreements,
+      [clause]: {
+        ...clauseAgreements[clause],
+        status,
+      },
+    })
+
+    if (status === "partially-agree" || status === "disagree") {
+      setActiveClause(clause)
+      setClauseNote(clauseAgreements[clause]?.notes || "")
+      setShowNoteDialog(true)
+    }
+  }
+
+  const saveClauseNote = () => {
+    if (activeClause) {
+      setClauseAgreements({
+        ...clauseAgreements,
+        [activeClause]: {
+          ...clauseAgreements[activeClause],
+          notes: clauseNote,
+        },
+      })
+      setShowNoteDialog(false)
+    }
+  }
 
   // This would be fetched from an API in a real implementation
   const document = {
@@ -169,6 +213,18 @@ export default function DocumentPage({ params }: { params: { id: string } }) {
               </Select>
             </div>
 
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                // In a real app, this would send the document back to the lawyer
+                alert("Document sent back to lawyer for review")
+                setStatus("Under Review")
+              }}
+            >
+              Send Back for Review
+            </Button>
+
             <Button variant="outline" size="sm">
               <Download className="mr-2 h-4 w-4" />
               Download
@@ -177,53 +233,44 @@ export default function DocumentPage({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      <Tabs defaultValue="document" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="document">Document</TabsTrigger>
-          <TabsTrigger value="comments">
-            Comments
-            <Badge variant="secondary" className="ml-2">
-              {comments.length}
-            </Badge>
-          </TabsTrigger>
-        </TabsList>
+      <div className="bg-white border rounded-lg overflow-hidden">
+        <DocumentViewer
+          documentId={params.id}
+          highlightedText={highlightedText}
+          onAddComment={handleAddComment}
+          clauseAgreements={clauseAgreements}
+          onAgreementChange={handleAgreementChange}
+        />
+      </div>
 
-        <TabsContent value="document" className="mt-0">
-          <div className="bg-white border rounded-lg overflow-hidden">
-            <DocumentViewer documentId={params.id} highlightedText={highlightedText} onAddComment={handleAddComment} />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="comments" className="mt-0">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-2">
-              <div className="bg-white border rounded-lg overflow-hidden">
-                <DocumentViewer
-                  documentId={params.id}
-                  highlightedText={highlightedText}
-                  onAddComment={handleAddComment}
-                />
-              </div>
+      {showNoteDialog && activeClause && (
+        <Dialog open={showNoteDialog} onOpenChange={setShowNoteDialog}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>
+                {clauseAgreements[activeClause]?.status === "partially-agree" ? "Partially Agree" : "Disagree"} with
+                Clause {activeClause}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <Label htmlFor="clause-note">Please explain your concerns:</Label>
+              <Textarea
+                id="clause-note"
+                value={clauseNote}
+                onChange={(e) => setClauseNote(e.target.value)}
+                className="mt-2 min-h-[100px]"
+                placeholder="Enter your comments about this clause..."
+              />
             </div>
-
-            <div className="space-y-6">
-              <div className="bg-white border rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                  <h3 className="font-medium">Add General Comment</h3>
-                </div>
-                <Textarea placeholder="Type your comment here..." className="mb-3" />
-                <Button>Post Comment</Button>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Tip: You can also select text in the document and click the comment icon to add a specific comment.
-                </p>
-              </div>
-
-              <DocumentComments documentId={params.id} comments={comments} onHighlightText={setHighlightedText} />
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowNoteDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={saveClauseNote}>Save Comments</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   )
 }
