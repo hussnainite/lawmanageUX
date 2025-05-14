@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Briefcase, Users, Settings, Home } from "lucide-react"
+import { Briefcase, Users, Settings, Home, Database } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const navigation = [
@@ -15,7 +15,10 @@ const navigation = [
   // { name: "Time & Billing", href: "/billing", icon: Clock },
 ]
 
-const secondaryNavigation = [{ name: "Settings", href: "/settings", icon: Settings }]
+const secondaryNavigation = [
+  { name: "Settings", href: "/settings", icon: Settings },
+  { name: "Master Data", href: "/master-data", icon: Database },
+]
 
 export default function Sidebar() {
   const pathname = usePathname()

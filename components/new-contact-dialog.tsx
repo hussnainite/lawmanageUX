@@ -19,7 +19,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
-import { Plus, User, Building2, X } from "lucide-react"
+import { Plus, User, Building2, X, Gavel, Briefcase, Building, Users } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export function NewContactDialog() {
@@ -40,6 +40,7 @@ export function NewContactDialog() {
   const [staffMembers, setStaffMembers] = useState([{ id: 1 }])
   const [childContacts, setChildContacts] = useState([{ id: 1 }])
   const [contactRole, setContactRole] = useState("client")
+  const [organizationType, setOrganizationType] = useState("")
   const [step, setStep] = useState(1)
 
   const addStaffMember = () => {
@@ -76,6 +77,21 @@ export function NewContactDialog() {
     setStep(step - 1)
   }
 
+  const getOrganizationIcon = (type: string) => {
+    switch (type) {
+      case "court":
+        return <Gavel className="h-6 w-6" />
+      case "government":
+        return <Building className="h-6 w-6" />
+      case "company":
+        return <Briefcase className="h-6 w-6" />
+      case "expert":
+        return <Users className="h-6 w-6" />
+      default:
+        return <Building2 className="h-6 w-6" />
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -90,7 +106,7 @@ export function NewContactDialog() {
         {step === 1 && (
           <div className="py-6">
             <h2 className="text-lg font-medium mb-4">What type of contact are you creating?</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card
                 className={cn(
                   "cursor-pointer hover:border-primary transition-colors",
@@ -117,23 +133,44 @@ export function NewContactDialog() {
               <Card
                 className={cn(
                   "cursor-pointer hover:border-primary transition-colors",
-                  contactRole === "other-party" ? "border-primary bg-primary/5" : "",
+                  contactRole === "other-side" ? "border-primary bg-primary/5" : "",
                 )}
-                onClick={() => setContactRole("other-party")}
+                onClick={() => setContactRole("other-side")}
               >
                 <CardContent className="flex flex-col items-center justify-center p-6">
                   <div
                     className={cn(
                       "w-12 h-12 rounded-full flex items-center justify-center mb-4",
-                      contactRole === "other-party" ? "bg-primary text-primary-foreground" : "bg-muted",
+                      contactRole === "other-side" ? "bg-primary text-primary-foreground" : "bg-muted",
                     )}
                   >
                     <Building2 className="h-6 w-6" />
                   </div>
-                  <h3 className="text-lg font-medium">Other Party</h3>
+                  <h3 className="text-lg font-medium">Other Side</h3>
                   <p className="text-sm text-muted-foreground text-center mt-2">
                     A person or organization that you interact with but don't represent
                   </p>
+                </CardContent>
+              </Card>
+
+              <Card
+                className={cn(
+                  "cursor-pointer hover:border-primary transition-colors",
+                  contactRole === "additional-party" ? "border-primary bg-primary/5" : "",
+                )}
+                onClick={() => setContactRole("additional-party")}
+              >
+                <CardContent className="flex flex-col items-center justify-center p-6">
+                  <div
+                    className={cn(
+                      "w-12 h-12 rounded-full flex items-center justify-center mb-4",
+                      contactRole === "additional-party" ? "bg-primary text-primary-foreground" : "bg-muted",
+                    )}
+                  >
+                    <Users className="h-6 w-6" />
+                  </div>
+                  <h3 className="text-lg font-medium">Additional Party</h3>
+                  <p className="text-sm text-muted-foreground text-center mt-2">A third party involved in the matter</p>
                 </CardContent>
               </Card>
             </div>
@@ -145,7 +182,10 @@ export function NewContactDialog() {
                   "cursor-pointer hover:border-primary transition-colors",
                   contactType === "person" ? "border-primary bg-primary/5" : "",
                 )}
-                onClick={() => setContactType("person")}
+                onClick={() => {
+                  setContactType("person")
+                  setOrganizationType("")
+                }}
               >
                 <CardContent className="flex flex-col items-center justify-center p-6">
                   <div
@@ -182,6 +222,41 @@ export function NewContactDialog() {
                 </CardContent>
               </Card>
             </div>
+
+            {contactType === "firm" && contactRole === "additional-party" && (
+              <>
+                <h2 className="text-lg font-medium mt-8 mb-4">What type of organization?</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[
+                    { id: "court", label: "Court", icon: <Gavel className="h-6 w-6" /> },
+                    { id: "government", label: "Government/NGO", icon: <Building className="h-6 w-6" /> },
+                    { id: "company", label: "Company", icon: <Briefcase className="h-6 w-6" /> },
+                    { id: "expert", label: "Expert", icon: <Users className="h-6 w-6" /> },
+                  ].map((org) => (
+                    <Card
+                      key={org.id}
+                      className={cn(
+                        "cursor-pointer hover:border-primary transition-colors",
+                        organizationType === org.id ? "border-primary bg-primary/5" : "",
+                      )}
+                      onClick={() => setOrganizationType(org.id)}
+                    >
+                      <CardContent className="flex flex-col items-center justify-center p-4">
+                        <div
+                          className={cn(
+                            "w-10 h-10 rounded-full flex items-center justify-center mb-3",
+                            organizationType === org.id ? "bg-primary text-primary-foreground" : "bg-muted",
+                          )}
+                        >
+                          {org.icon}
+                        </div>
+                        <h3 className="font-medium">{org.label}</h3>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </>
+            )}
 
             {contactType === "person" && (
               <div className="mt-8">
@@ -258,7 +333,11 @@ export function NewContactDialog() {
                       personType === "adult" ? (
                         <>
                           <h3 className="text-lg font-medium mb-4">
-                            {contactRole === "client" ? "Client Details" : "Other Party"}
+                            {contactRole === "client"
+                              ? "Client Details"
+                              : contactRole === "other-side"
+                                ? "Other Side"
+                                : "Additional Party"}
                           </h3>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
@@ -425,7 +504,11 @@ export function NewContactDialog() {
                     ) : (
                       <>
                         <h3 className="text-lg font-medium mb-4">
-                          {contactRole === "client" ? "Client Details" : "Other Party"}
+                          {contactRole === "client"
+                            ? "Client Details"
+                            : contactRole === "other-side"
+                              ? "Other Side"
+                              : `${organizationType.charAt(0).toUpperCase() + organizationType.slice(1)} Details`}
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
@@ -791,6 +874,10 @@ export function NewContactDialog() {
                               </SelectContent>
                             </Select>
                           </div>
+                          <div>
+                            <Label htmlFor="deed-packet">Deed Packet Information</Label>
+                            <Input id="deed-packet" />
+                          </div>
                         </div>
                       </>
                     ) : (
@@ -829,6 +916,10 @@ export function NewContactDialog() {
                                 <Label htmlFor="without-seal">Without Seal</Label>
                               </div>
                             </RadioGroup>
+                          </div>
+                          <div>
+                            <Label htmlFor="deed-packet">Deed Packet Information</Label>
+                            <Input id="deed-packet" />
                           </div>
                         </div>
                       </>

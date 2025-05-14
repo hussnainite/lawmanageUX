@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { ZoomIn, ZoomOut, MessageSquarePlus } from "lucide-react"
+import { ZoomIn, ZoomOut, MessageSquarePlus, Check, Minus, X } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Textarea } from "@/components/ui/textarea"
 
@@ -10,9 +10,22 @@ interface DocumentViewerProps {
   documentId: string
   highlightedText?: string | null
   onAddComment?: (selectedText: string, comment: string) => void
+  clauseAgreements?: {
+    [key: string]: {
+      status: "agree" | "partially-agree" | "disagree"
+      notes?: string
+    }
+  }
+  onAgreementChange?: (clause: string, status: "agree" | "partially-agree" | "disagree") => void
 }
 
-export function DocumentViewer({ documentId, highlightedText, onAddComment }: DocumentViewerProps) {
+export function DocumentViewer({
+  documentId,
+  highlightedText,
+  onAddComment,
+  clauseAgreements,
+  onAgreementChange,
+}: DocumentViewerProps) {
   const [zoom, setZoom] = useState(100)
   const [selection, setSelection] = useState<{ text: string; x: number; y: number } | null>(null)
   const [commentText, setCommentText] = useState("")
@@ -99,89 +112,150 @@ export function DocumentViewer({ documentId, highlightedText, onAddComment }: Do
               dangerouslySetInnerHTML={{
                 __html: highlightDocumentText(
                   `
-        <h1 class="text-2xl font-bold mb-6">Settlement Agreement</h1>
+  <h1 class="text-2xl font-bold mb-6">Settlement Agreement</h1>
 
-        <p class="mb-4">
-          THIS SETTLEMENT AGREEMENT (the "Agreement") is made and entered into as of [DATE], by and between:
-        </p>
+  <p class="mb-4">
+    THIS SETTLEMENT AGREEMENT (the "Agreement") is made and entered into as of [DATE], by and between:
+  </p>
 
-        <p class="mb-4">
-          <strong>PARTY A:</strong> [FULL LEGAL NAME], an individual residing at [ADDRESS] ("Party A"), and
-        </p>
+  <p class="mb-4">
+    <strong>PARTY A:</strong> [FULL LEGAL NAME], an individual residing at [ADDRESS] ("Party A"), and
+  </p>
 
-        <p class="mb-4">
-          <strong>PARTY B:</strong> [FULL LEGAL NAME], an individual residing at [ADDRESS] ("Party B").
-        </p>
+  <p class="mb-4">
+    <strong>PARTY B:</strong> [FULL LEGAL NAME], an individual residing at [ADDRESS] ("Party B").
+  </p>
 
-        <p class="mb-4">
-          Party A and Party B are sometimes referred to herein individually as a "Party" and collectively as the
-          "Parties."
-        </p>
+  <p class="mb-4">
+    Party A and Party B are sometimes referred to herein individually as a "Party" and collectively as the
+    "Parties."
+  </p>
 
-        <h2 class="text-xl font-bold mt-6 mb-4">RECITALS</h2>
+  <h2 class="text-xl font-bold mt-6 mb-4">RECITALS</h2>
 
-        <p class="mb-4">WHEREAS, [describe the dispute or matter being settled];</p>
+  <p class="mb-4">WHEREAS, [describe the dispute or matter being settled];</p>
 
-        <p class="mb-4">
-          WHEREAS, the Parties wish to resolve all claims and disputes between them without further legal proceedings;
-        </p>
+  <p class="mb-4">
+    WHEREAS, the Parties wish to resolve all claims and disputes between them without further legal proceedings;
+  </p>
 
-        <p class="mb-4">
-          NOW, THEREFORE, in consideration of the mutual covenants and promises contained herein, and other good and
-          valuable consideration, the receipt and sufficiency of which are hereby acknowledged, the Parties agree as
-          follows:
-        </p>
+  <p class="mb-4">
+    NOW, THEREFORE, in consideration of the mutual covenants and promises contained herein, and other good and
+    valuable consideration, the receipt and sufficiency of which are hereby acknowledged, the Parties agree as
+    follows:
+  </p>
 
-        <h2 class="text-xl font-bold mt-6 mb-4">1. SETTLEMENT TERMS</h2>
+  <div class="relative">
+    <h2 class="text-xl font-bold mt-6 mb-4">1. SETTLEMENT TERMS</h2>
+  </div>
 
-        <p class="mb-4">
-          1.1 Settlement Payment. Party [A/B] agrees to pay Party [B/A] the total sum of [AMOUNT IN WORDS] dollars
-          ($[AMOUNT IN NUMBERS]) (the "Settlement Amount"), payable as follows: [payment terms].
-        </p>
+  <div class="relative ${clauseAgreements && clauseAgreements["1.1"]?.status === "disagree" ? "bg-red-50" : clauseAgreements && clauseAgreements["1.1"]?.status === "partially-agree" ? "bg-amber-50" : ""} p-2 -mx-2 rounded">
+    <p class="mb-4">
+      1.1 Settlement Payment. Party [A/B] agrees to pay Party [B/A] the total sum of [AMOUNT IN WORDS] dollars
+      ($[AMOUNT IN NUMBERS]) (the "Settlement Amount"), payable as follows: [payment terms].
+    </p>
+    ${
+      clauseAgreements["1.1"]?.notes
+        ? `
+    <div class="mt-2 p-2 bg-white border rounded text-sm">
+      <strong>Comments:</strong> ${clauseAgreements["1.1"].notes}
+    </div>
+    `
+        : ""
+    }
+  </div>
 
-        <p class="mb-4">1.2 [Additional settlement terms as needed].</p>
+  <div class="relative ${clauseAgreements && clauseAgreements["1.2"]?.status === "disagree" ? "bg-red-50" : clauseAgreements && clauseAgreements["1.2"]?.status === "partially-agree" ? "bg-amber-50" : ""} p-2 -mx-2 rounded">
+    <p class="mb-4">1.2 [Additional settlement terms as needed].</p>
+    ${
+      clauseAgreements["1.2"]?.notes
+        ? `
+    <div class="mt-2 p-2 bg-white border rounded text-sm">
+      <strong>Comments:</strong> ${clauseAgreements["1.2"].notes}
+    </div>
+    `
+        : ""
+    }
+  </div>
 
-        <h2 class="text-xl font-bold mt-6 mb-4">2. RELEASE OF CLAIMS</h2>
+  <div class="relative">
+    <h2 class="text-xl font-bold mt-6 mb-4">2. RELEASE OF CLAIMS</h2>
+  </div>
 
-        <p class="mb-4">
-          2.1 Release by Party A. Party A hereby releases and forever discharges Party B from any and all claims,
-          demands, damages, actions, causes of action, or suits of any kind or nature whatsoever, known or unknown,
-          which Party A has or may have against Party B arising from or related to [subject matter of dispute].
-        </p>
+  <div class="relative ${clauseAgreements && clauseAgreements["2.1"]?.status === "disagree" ? "bg-red-50" : clauseAgreements && clauseAgreements["2.1"]?.status === "partially-agree" ? "bg-amber-50" : ""} p-2 -mx-2 rounded">
+    <p class="mb-4">
+      2.1 Release by Party A. Party A hereby releases and forever discharges Party B from any and all claims,
+      demands, damages, actions, causes of action, or suits of any kind or nature whatsoever, known or unknown,
+      which Party A has or may have against Party B arising from or related to [subject matter of dispute].
+    </p>
+    ${
+      clauseAgreements["2.1"]?.notes
+        ? `
+    <div class="mt-2 p-2 bg-white border rounded text-sm">
+      <strong>Comments:</strong> ${clauseAgreements["2.1"].notes}
+    </div>
+    `
+        : ""
+    }
+  </div>
 
-        <p class="mb-4">
-          2.2 Release by Party B. Party B hereby releases and forever discharges Party A from any and all claims,
-          demands, damages, actions, causes of action, or suits of any kind or nature whatsoever, known or unknown,
-          which Party B has or may have against Party A arising from or related to [subject matter of dispute].
-        </p>
+  <div class="relative ${clauseAgreements && clauseAgreements["2.2"]?.status === "disagree" ? "bg-red-50" : clauseAgreements && clauseAgreements["2.2"]?.status === "partially-agree" ? "bg-amber-50" : ""} p-2 -mx-2 rounded">
+    <p class="mb-4">
+      2.2 Release by Party B. Party B hereby releases and forever discharges Party A from any and all claims,
+      demands, damages, actions, causes of action, or suits of any kind or nature whatsoever, known or unknown,
+      which Party B has or may have against Party A arising from or related to [subject matter of dispute].
+    </p>
+    ${
+      clauseAgreements["2.2"]?.notes
+        ? `
+    <div class="mt-2 p-2 bg-white border rounded text-sm">
+      <strong>Comments:</strong> ${clauseAgreements["2.2"].notes}
+    </div>
+    `
+        : ""
+    }
+  </div>
 
-        <h2 class="text-xl font-bold mt-6 mb-4">3. CONFIDENTIALITY</h2>
+  <div class="relative">
+    <h2 class="text-xl font-bold mt-6 mb-4">3. CONFIDENTIALITY</h2>
+  </div>
 
-        <p class="mb-4">
-          The Parties agree to keep the terms and conditions of this Agreement confidential and shall not disclose
-          them to any third party except as required by law, for tax purposes, or as necessary to enforce the terms of
-          this Agreement.
-        </p>
+  <div class="relative ${clauseAgreements && clauseAgreements["3.1"]?.status === "disagree" ? "bg-red-50" : clauseAgreements && clauseAgreements["3.1"]?.status === "partially-agree" ? "bg-amber-50" : ""} p-2 -mx-2 rounded">
+    <p class="mb-4">
+      The Parties agree to keep the terms and conditions of this Agreement confidential and shall not disclose
+      them to any third party except as required by law, for tax purposes, or as necessary to enforce the terms of
+      this Agreement.
+    </p>
+    ${
+      clauseAgreements["3.1"]?.notes
+        ? `
+    <div class="mt-2 p-2 bg-white border rounded text-sm">
+      <strong>Comments:</strong> ${clauseAgreements["3.1"].notes}
+    </div>
+    `
+        : ""
+    }
+  </div>
 
-        <div class="mt-12 pt-8 border-t">
-          <p class="mb-8">
-            IN WITNESS WHEREOF, the Parties have executed this Agreement as of the date first above written.
-          </p>
+  <div class="mt-12 pt-8 border-t">
+    <p class="mb-8">
+      IN WITNESS WHEREOF, the Parties have executed this Agreement as of the date first above written.
+    </p>
 
-          <div class="grid grid-cols-2 gap-12">
-            <div>
-              <p class="mb-12">PARTY A:</p>
-              <p>____________________________</p>
-              <p>[FULL LEGAL NAME]</p>
-            </div>
+    <div class="grid grid-cols-2 gap-12">
+      <div>
+        <p class="mb-12">PARTY A:</p>
+        <p>____________________________</p>
+        <p>[FULL LEGAL NAME]</p>
+      </div>
 
-            <div>
-              <p class="mb-12">PARTY B:</p>
-              <p>____________________________</p>
-              <p>[FULL LEGAL NAME]</p>
-            </div>
-          </div>
-        </div>
+      <div>
+        <p class="mb-12">PARTY B:</p>
+        <p>____________________________</p>
+        <p>[FULL LEGAL NAME]</p>
+      </div>
+    </div>
+  </div>
       `,
                   highlightedText,
                 ),
@@ -223,38 +297,401 @@ export function DocumentViewer({ documentId, highlightedText, onAddComment }: Do
                 agree as follows:
               </p>
 
-              <h2 className="text-xl font-bold mt-6 mb-4">1. SETTLEMENT TERMS</h2>
+              <div className="relative">
+                <h2 className="text-xl font-bold mt-6 mb-4 pr-24">1. SETTLEMENT TERMS</h2>
+                {clauseAgreements && onAgreementChange ? (
+                  <div className="absolute right-0 top-6 flex space-x-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={`h-7 w-7 p-0 rounded-full ${
+                        clauseAgreements["1"]?.status === "agree" ? "bg-green-100 text-green-700" : ""
+                      }`}
+                      onClick={() => onAgreementChange("1", "agree")}
+                    >
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={`h-7 w-7 p-0 rounded-full ${
+                        clauseAgreements["1"]?.status === "partially-agree" ? "bg-amber-100 text-amber-700" : ""
+                      }`}
+                      onClick={() => onAgreementChange("1", "partially-agree")}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={`h-7 w-7 p-0 rounded-full ${
+                        clauseAgreements["1"]?.status === "disagree" ? "bg-red-100 text-red-700" : ""
+                      }`}
+                      onClick={() => onAgreementChange("1", "disagree")}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
 
-              <p className="mb-4">
-                1.1 Settlement Payment. Party [A/B] agrees to pay Party [B/A] the total sum of [AMOUNT IN WORDS] dollars
-                ($[AMOUNT IN NUMBERS]) (the "Settlement Amount"), payable as follows: [payment terms].
-              </p>
+              <div
+                className={`relative ${
+                  clauseAgreements && clauseAgreements["1.1"]?.status === "disagree"
+                    ? "bg-red-50"
+                    : clauseAgreements && clauseAgreements["1.1"]?.status === "partially-agree"
+                      ? "bg-amber-50"
+                      : ""
+                } p-2 -mx-2 rounded mb-4`}
+              >
+                <div className="pr-24">
+                  <p>
+                    1.1 Settlement Payment. Party [A/B] agrees to pay Party [B/A] the total sum of [AMOUNT IN WORDS]
+                    dollars ($[AMOUNT IN NUMBERS]) (the "Settlement Amount"), payable as follows: [payment terms].
+                  </p>
+                </div>
+                {clauseAgreements && onAgreementChange ? (
+                  <div className="absolute right-2 top-2 flex space-x-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={`h-7 w-7 p-0 rounded-full ${
+                        clauseAgreements["1.1"]?.status === "agree" ? "bg-green-100 text-green-700" : ""
+                      }`}
+                      onClick={() => onAgreementChange("1.1", "agree")}
+                    >
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={`h-7 w-7 p-0 rounded-full ${
+                        clauseAgreements["1.1"]?.status === "partially-agree" ? "bg-amber-100 text-amber-700" : ""
+                      }`}
+                      onClick={() => onAgreementChange("1.1", "partially-agree")}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={`h-7 w-7 p-0 rounded-full ${
+                        clauseAgreements["1.1"]?.status === "disagree" ? "bg-red-100 text-red-700" : ""
+                      }`}
+                      onClick={() => onAgreementChange("1.1", "disagree")}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : null}
+                {clauseAgreements["1.1"]?.notes ? (
+                  <div className="mt-2 p-2 bg-white border rounded text-sm">
+                    <strong>Comments:</strong> {clauseAgreements["1.1"].notes}
+                  </div>
+                ) : null}
+              </div>
 
-              <p className="mb-4">1.2 [Additional settlement terms as needed].</p>
+              <div
+                className={`relative ${
+                  clauseAgreements && clauseAgreements["1.2"]?.status === "disagree"
+                    ? "bg-red-50"
+                    : clauseAgreements && clauseAgreements["1.2"]?.status === "partially-agree"
+                      ? "bg-amber-50"
+                      : ""
+                } p-2 -mx-2 rounded mb-4`}
+              >
+                <div className="pr-24">
+                  <p>1.2 [Additional settlement terms as needed].</p>
+                </div>
+                {clauseAgreements && onAgreementChange ? (
+                  <div className="absolute right-2 top-2 flex space-x-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={`h-7 w-7 p-0 rounded-full ${
+                        clauseAgreements["1.2"]?.status === "agree" ? "bg-green-100 text-green-700" : ""
+                      }`}
+                      onClick={() => onAgreementChange("1.2", "agree")}
+                    >
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={`h-7 w-7 p-0 rounded-full ${
+                        clauseAgreements["1.2"]?.status === "partially-agree" ? "bg-amber-100 text-amber-700" : ""
+                      }`}
+                      onClick={() => onAgreementChange("1.2", "partially-agree")}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={`h-7 w-7 p-0 rounded-full ${
+                        clauseAgreements["1.2"]?.status === "disagree" ? "bg-red-100 text-red-700" : ""
+                      }`}
+                      onClick={() => onAgreementChange("1.2", "disagree")}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : null}
+                {clauseAgreements["1.2"]?.notes ? (
+                  <div className="mt-2 p-2 bg-white border rounded text-sm">
+                    <strong>Comments:</strong> {clauseAgreements["1.2"].notes}
+                  </div>
+                ) : null}
+              </div>
 
-              <h2 className="text-xl font-bold mt-6 mb-4">2. RELEASE OF CLAIMS</h2>
+              <div className="relative">
+                <h2 className="text-xl font-bold mt-6 mb-4 pr-24">2. RELEASE OF CLAIMS</h2>
+                {clauseAgreements && onAgreementChange ? (
+                  <div className="absolute right-0 top-6 flex space-x-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={`h-7 w-7 p-0 rounded-full ${
+                        clauseAgreements["2"]?.status === "agree" ? "bg-green-100 text-green-700" : ""
+                      }`}
+                      onClick={() => onAgreementChange("2", "agree")}
+                    >
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={`h-7 w-7 p-0 rounded-full ${
+                        clauseAgreements["2"]?.status === "partially-agree" ? "bg-amber-100 text-amber-700" : ""
+                      }`}
+                      onClick={() => onAgreementChange("2", "partially-agree")}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={`h-7 w-7 p-0 rounded-full ${
+                        clauseAgreements["2"]?.status === "disagree" ? "bg-red-100 text-red-700" : ""
+                      }`}
+                      onClick={() => onAgreementChange("2", "disagree")}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
 
-              <p className="mb-4">
-                2.1 Release by Party A. Party A hereby releases and forever discharges Party B from any and all claims,
-                demands, damages, actions, causes of action, or suits of any kind or nature whatsoever, known or
-                unknown, which Party A has or may have against Party B arising from or related to [subject matter of
-                dispute].
-              </p>
+              <div
+                className={`relative ${
+                  clauseAgreements && clauseAgreements["2.1"]?.status === "disagree"
+                    ? "bg-red-50"
+                    : clauseAgreements && clauseAgreements["2.1"]?.status === "partially-agree"
+                      ? "bg-amber-50"
+                      : ""
+                } p-2 -mx-2 rounded mb-4`}
+              >
+                <div className="pr-24">
+                  <p>
+                    2.1 Release by Party A. Party A hereby releases and forever discharges Party B from any and all
+                    claims, demands, damages, actions, causes of action, or suits of any kind or nature whatsoever,
+                    known or unknown, which Party A has or may have against Party B arising from or related to [subject
+                    matter of dispute].
+                  </p>
+                </div>
+                {clauseAgreements && onAgreementChange ? (
+                  <div className="absolute right-2 top-2 flex space-x-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={`h-7 w-7 p-0 rounded-full ${
+                        clauseAgreements["2.1"]?.status === "agree" ? "bg-green-100 text-green-700" : ""
+                      }`}
+                      onClick={() => onAgreementChange("2.1", "agree")}
+                    >
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={`h-7 w-7 p-0 rounded-full ${
+                        clauseAgreements["2.1"]?.status === "partially-agree" ? "bg-amber-100 text-amber-700" : ""
+                      }`}
+                      onClick={() => onAgreementChange("2.1", "partially-agree")}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={`h-7 w-7 p-0 rounded-full ${
+                        clauseAgreements["2.1"]?.status === "disagree" ? "bg-red-100 text-red-700" : ""
+                      }`}
+                      onClick={() => onAgreementChange("2.1", "disagree")}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : null}
+                {clauseAgreements["2.1"]?.notes ? (
+                  <div className="mt-2 p-2 bg-white border rounded text-sm">
+                    <strong>Comments:</strong> {clauseAgreements["2.1"].notes}
+                  </div>
+                ) : null}
+              </div>
 
-              <p className="mb-4">
-                2.2 Release by Party B. Party B hereby releases and forever discharges Party A from any and all claims,
-                demands, damages, actions, causes of action, or suits of any kind or nature whatsoever, known or
-                unknown, which Party B has or may have against Party A arising from or related to [subject matter of
-                dispute].
-              </p>
+              <div
+                className={`relative ${
+                  clauseAgreements && clauseAgreements["2.2"]?.status === "disagree"
+                    ? "bg-red-50"
+                    : clauseAgreements && clauseAgreements["2.2"]?.status === "partially-agree"
+                      ? "bg-amber-50"
+                      : ""
+                } p-2 -mx-2 rounded mb-4`}
+              >
+                <div className="pr-24">
+                  <p>
+                    2.2 Release by Party B. Party B hereby releases and forever discharges Party A from any and all
+                    claims, demands, damages, actions, causes of action, or suits of any kind or nature whatsoever,
+                    known or unknown, which Party B has or may have against Party A arising from or related to [subject
+                    matter of dispute].
+                  </p>
+                </div>
+                {clauseAgreements && onAgreementChange ? (
+                  <div className="absolute right-2 top-2 flex space-x-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={`h-7 w-7 p-0 rounded-full ${
+                        clauseAgreements["2.2"]?.status === "agree" ? "bg-green-100 text-green-700" : ""
+                      }`}
+                      onClick={() => onAgreementChange("2.2", "agree")}
+                    >
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={`h-7 w-7 p-0 rounded-full ${
+                        clauseAgreements["2.2"]?.status === "partially-agree" ? "bg-amber-100 text-amber-700" : ""
+                      }`}
+                      onClick={() => onAgreementChange("2.2", "partially-agree")}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={`h-7 w-7 p-0 rounded-full ${
+                        clauseAgreements["2.2"]?.status === "disagree" ? "bg-red-100 text-red-700" : ""
+                      }`}
+                      onClick={() => onAgreementChange("2.2", "disagree")}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : null}
+                {clauseAgreements["2.2"]?.notes ? (
+                  <div className="mt-2 p-2 bg-white border rounded text-sm">
+                    <strong>Comments:</strong> {clauseAgreements["2.2"].notes}
+                  </div>
+                ) : null}
+              </div>
 
-              <h2 className="text-xl font-bold mt-6 mb-4">3. CONFIDENTIALITY</h2>
+              <div className="relative">
+                <h2 className="text-xl font-bold mt-6 mb-4 pr-24">3. CONFIDENTIALITY</h2>
+                {clauseAgreements && onAgreementChange ? (
+                  <div className="absolute right-0 top-6 flex space-x-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={`h-7 w-7 p-0 rounded-full ${
+                        clauseAgreements["3"]?.status === "agree" ? "bg-green-100 text-green-700" : ""
+                      }`}
+                      onClick={() => onAgreementChange("3", "agree")}
+                    >
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={`h-7 w-7 p-0 rounded-full ${
+                        clauseAgreements["3"]?.status === "partially-agree" ? "bg-amber-100 text-amber-700" : ""
+                      }`}
+                      onClick={() => onAgreementChange("3", "partially-agree")}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={`h-7 w-7 p-0 rounded-full ${
+                        clauseAgreements["3"]?.status === "disagree" ? "bg-red-100 text-red-700" : ""
+                      }`}
+                      onClick={() => onAgreementChange("3", "disagree")}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
 
-              <p className="mb-4">
-                The Parties agree to keep the terms and conditions of this Agreement confidential and shall not disclose
-                them to any third party except as required by law, for tax purposes, or as necessary to enforce the
-                terms of this Agreement.
-              </p>
+              <div
+                className={`relative ${
+                  clauseAgreements && clauseAgreements["3.1"]?.status === "disagree"
+                    ? "bg-red-50"
+                    : clauseAgreements && clauseAgreements["3.1"]?.status === "partially-agree"
+                      ? "bg-amber-50"
+                      : ""
+                } p-2 -mx-2 rounded mb-4`}
+              >
+                <div className="pr-24">
+                  <p>
+                    The Parties agree to keep the terms and conditions of this Agreement confidential and shall not
+                    disclose them to any third party except as required by law, for tax purposes, or as necessary to
+                    enforce the terms of this Agreement.
+                  </p>
+                </div>
+                {clauseAgreements && onAgreementChange ? (
+                  <div className="absolute right-2 top-2 flex space-x-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={`h-7 w-7 p-0 rounded-full ${
+                        clauseAgreements["3.1"]?.status === "agree" ? "bg-green-100 text-green-700" : ""
+                      }`}
+                      onClick={() => onAgreementChange("3.1", "agree")}
+                    >
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={`h-7 w-7 p-0 rounded-full ${
+                        clauseAgreements["3.1"]?.status === "partially-agree" ? "bg-amber-100 text-amber-700" : ""
+                      }`}
+                      onClick={() => onAgreementChange("3.1", "partially-agree")}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={`h-7 w-7 p-0 rounded-full ${
+                        clauseAgreements["3.1"]?.status === "disagree" ? "bg-red-100 text-red-700" : ""
+                      }`}
+                      onClick={() => onAgreementChange("3.1", "disagree")}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : null}
+                {clauseAgreements["3.1"]?.notes ? (
+                  <div className="mt-2 p-2 bg-white border rounded text-sm">
+                    <strong>Comments:</strong> {clauseAgreements["3.1"].notes}
+                  </div>
+                ) : null}
+              </div>
 
               <div className="mt-12 pt-8 border-t">
                 <p className="mb-8">

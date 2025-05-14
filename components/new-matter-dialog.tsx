@@ -1,3 +1,5 @@
+"use client"
+
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -13,8 +15,19 @@ import { Label } from "@/components/ui/label"
 import { Plus } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 
 export default function NewMatterDialog() {
+  const [contactType, setContactType] = useState<"client" | "additional" | "opposing" | "lawyer">("client")
+  const router = useRouter()
+
+  const handleAddContact = (type: "client" | "additional" | "opposing" | "lawyer") => {
+    setContactType(type)
+    // Navigate to the new contact page with a query parameter to indicate the contact type
+    router.push(`/contacts/new?type=${type}`)
+  }
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -155,7 +168,7 @@ export default function NewMatterDialog() {
                       <SelectItem value="robert">Robert Williams</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button variant="outline" size="icon">
+                  <Button variant="outline" size="icon" onClick={() => handleAddContact("client")}>
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
@@ -175,7 +188,7 @@ export default function NewMatterDialog() {
                       <SelectItem value="emily">Emily Williams</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button variant="outline" size="icon">
+                  <Button variant="outline" size="icon" onClick={() => handleAddContact("additional")}>
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
@@ -185,7 +198,7 @@ export default function NewMatterDialog() {
               <h3 className="text-sm font-medium">Opposing Party Information</h3>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="opposing" className="text-right">
-                  Opposing Party
+                  Other Side
                 </Label>
                 <div className="col-span-3 flex space-x-2">
                   <Select>
@@ -198,7 +211,7 @@ export default function NewMatterDialog() {
                       <SelectItem value="emily">Emily Williams</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button variant="outline" size="icon">
+                  <Button variant="outline" size="icon" onClick={() => handleAddContact("opposing")}>
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
@@ -218,7 +231,7 @@ export default function NewMatterDialog() {
                       <SelectItem value="david">David Miller, Esq.</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button variant="outline" size="icon">
+                  <Button variant="outline" size="icon" onClick={() => handleAddContact("lawyer")}>
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>

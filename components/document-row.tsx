@@ -6,16 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import DocumentEditor from "./document-editor"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+import DocumentShareDialog from "./document-share-dialog"
 
 interface DocumentRowProps {
   document: {
@@ -30,14 +21,14 @@ interface DocumentRowProps {
 
 export default function DocumentRow({ document, matterId }: DocumentRowProps) {
   const [showEditor, setShowEditor] = useState(false)
-  const [publishDialogOpen, setPublishDialogOpen] = useState(false)
+  const [showShareDialog, setShowShareDialog] = useState(false)
 
   const handleOpenDocument = () => {
     setShowEditor(true)
   }
 
   const handlePublishClick = () => {
-    setPublishDialogOpen(true)
+    setShowShareDialog(true)
   }
 
   // Mock document content based on document name
@@ -72,7 +63,7 @@ export default function DocumentRow({ document, matterId }: DocumentRowProps) {
               <DropdownMenuItem>Download</DropdownMenuItem>
               <DropdownMenuItem>Edit Details</DropdownMenuItem>
               <DropdownMenuItem>Attach to Hearing</DropdownMenuItem>
-              <DropdownMenuItem onClick={handlePublishClick}>Publish Document</DropdownMenuItem>
+              <DropdownMenuItem onClick={handlePublishClick}>Share with Other Side</DropdownMenuItem>
               <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -90,30 +81,14 @@ export default function DocumentRow({ document, matterId }: DocumentRowProps) {
         />
       )}
 
-      {/* Publish Confirmation Dialog */}
-      <AlertDialog open={publishDialogOpen} onOpenChange={setPublishDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Publish Document</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to publish the document "{document.name}" to the counterparty portal?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>No</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                // Here you would add the actual publish logic
-                // For now, just close the dialog
-                setPublishDialogOpen(false)
-              }}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              Yes
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {showShareDialog && (
+        <DocumentShareDialog
+          isOpen={showShareDialog}
+          onClose={() => setShowShareDialog(false)}
+          documentName={document.name}
+          documentId={document.id}
+        />
+      )}
     </>
   )
 }
